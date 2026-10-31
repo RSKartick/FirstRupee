@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -97,9 +97,14 @@ def _summary(db: Session, asset: Asset) -> dict[str, Any]:
 
 
 @router.get("/benchmarks")
-def list_benchmarks() -> dict[str, Any]:
+def list_benchmarks(response: Response) -> dict[str, Any]:
+    benchmarks = fetch_live_benchmarks(timeout=2.0)
+    if benchmarks and all(quote.get("is_live") is True for quote in benchmarks):
+        response.headers["Cache-Control"] = "public, s-maxage=60, stale-while-revalidate=240"
+    else:
+        response.headers["Cache-Control"] = "public, s-maxage=15"
     return {
-        "benchmarks": fetch_live_benchmarks(),
+        "benchmarks": benchmarks,
         "provider": get_provider().id,
     }
 
