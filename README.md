@@ -129,7 +129,19 @@ $env:BACKEND_URL="http://127.0.0.1:8000"; npm --prefix frontend run dev
 ### Database
 
 Migrations run automatically when the API starts (`app/main.py` lifespan -> `app/db/migrate.py` -> Alembic `upgrade head`). They
-can also be run explicitly:
+can also be run explicitly. Market data is not fetched or seeded during normal API startup. To explicitly bootstrap or refresh
+the public catalogue with live provider data, run this once from the backend directory:
+
+```bash
+cd backend
+.venv/bin/python -m app.seed_cli --live
+```
+
+Set `SEED_ON_STARTUP=1` only when startup seeding is intentionally needed. The default is off, which avoids outbound
+market-data calls on new request-serving instances. The manual command uses the existing database configuration and does
+not change account or profile data.
+
+Migrations can also be run explicitly:
 
 ```bash
 cd backend

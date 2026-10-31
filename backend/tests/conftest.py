@@ -13,6 +13,7 @@ os.environ["LLM_API_KEY"] = ""
 os.environ["GEMINI_API_KEY"] = ""
 os.environ["COOKIE_SECURE"] = "false"
 os.environ["FIRSTRUPEE_OFFLINE_SEED"] = "1"
+os.environ["SEED_ON_STARTUP"] = "1"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

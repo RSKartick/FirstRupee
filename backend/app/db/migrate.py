@@ -7,6 +7,7 @@ from contextlib import contextmanager
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.pool import NullPool
@@ -39,3 +40,20 @@ def run_migrations(database_url: str | None = None) -> None:
     config.set_main_option("script_location", str(BACKEND_ROOT / "alembic"))
     config.attributes["database_url"] = database_url or resolve_database_url(get_settings().database_url)
     command.upgrade(config, "head")
+
+
+def schema_is_at_head(database_url: str | None = None) -> bool:
+    """Return whether the database records every current Alembic head revision."""
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+    config.set_main_option("script_location", str(BACKEND_ROOT / "alembic"))
+    heads = set(ScriptDirectory.from_config(config).get_heads())
+    resolved = resolve_database_url(database_url or get_settings().database_url)
+    engine = create_engine(resolved, poolclass=NullPool)
+    try:
+        with engine.connect() as connection:
+            current = set(connection.execute(text("SELECT version_num FROM alembic_version")).scalars())
+        return current == heads
+    except Exception:
+        return False
+    finally:
+        engine.dispose()
