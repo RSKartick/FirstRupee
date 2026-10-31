@@ -23,8 +23,9 @@
 	});
 
 	$effect(() => {
-		void session.activeProfileId;
+		const id = session.activeProfileId;
 		timing = null;
+		if (id) void run();
 	});
 
 	async function run() {
@@ -52,7 +53,7 @@
 	}
 </script>
 
-<svelte:head><title>Three Clocks — FirstRupee</title></svelte:head>
+<svelte:head><title>Three Clocks - FirstRupee</title></svelte:head>
 
 {#if !session.activeProfileId}
 	<div class="card space-y-3 text-center">
@@ -63,7 +64,7 @@
 	<div class="space-y-6">
 		<section class="card grain">
 			<p class="text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-soft">Three-Clock Timing Engine</p>
-			<h1 class="mt-2 text-2xl font-semibold tracking-tight">When is “now” the right time?</h1>
+			<h1 class="mt-2 text-2xl font-semibold tracking-tight">When is "now" the right time?</h1>
 			<p class="muted mt-2 max-w-3xl">
 				FirstRupee applies three clocks in a fixed order. The Money Clock asks when money is genuinely available. The Goal Clock asks
 				when it will be needed. The Market Clock offers historical context from stored data. Readiness and goal liquidity always
@@ -73,12 +74,12 @@
 				<div>
 					<label class="field-label" for="timingAsset">Reference instrument for the Market Clock (optional)</label>
 					<select id="timingAsset" class="field-input" bind:value={assetId}>
-						<option value="">No market context — money and goal only</option>
-						{#each assets as a (a.id)}<option value={String(a.id)}>{a.name}</option>{/each}
+						<option value="">No market context - money and goal only</option>
+						{#each assets as a (a.id)}<option value={String(a.id)}>{a.name} ({a.symbol})</option>{/each}
 					</select>
 				</div>
 				<div class="flex items-end">
-					<button class="btn btn-primary w-full" onclick={run} disabled={busy}>{busy ? 'Analysing…' : 'Run timing analysis'}</button>
+					<button class="btn btn-primary w-full" onclick={run} disabled={busy}>{busy ? 'Analysing...' : 'Run timing analysis'}</button>
 				</div>
 			</div>
 			{#if error}<p class="field-error mt-3" role="alert">{error}</p>{/if}

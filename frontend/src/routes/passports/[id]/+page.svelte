@@ -27,18 +27,19 @@
 
 	const profileName = $derived(String(passport?.investor_profile.display_name ?? 'Investor'));
 	const metrics = $derived(passport?.readiness.metrics ?? {});
+	const rec = $derived(passport?.recommendations ?? passport?.readiness.recommendations ?? null);
 </script>
 
-<svelte:head><title>Decision Passport — FirstRupee</title></svelte:head>
+<svelte:head><title>Decision Passport - FirstRupee</title></svelte:head>
 
 {#if error}
 	<Notice tone="danger" title="Not available">{error}</Notice>
 {:else if !passport}
-	<p class="muted" role="status">Loading the passport…</p>
+	<p class="muted" role="status">Loading the passport...</p>
 {:else}
 	<div class="mx-auto max-w-4xl space-y-6">
 		<div class="flex flex-wrap items-center justify-between gap-3 no-print">
-			<a class="muted" href="/passports">← All passports</a>
+			<a class="muted" href="/passports">&lt;- All passports</a>
 			<button class="btn" onclick={() => window.print()}>Print or save as PDF</button>
 		</div>
 
@@ -57,7 +58,7 @@
 			{/if}
 		</section>
 
-		<Card title="1–2 · Investor profile and financial readiness">
+		<Card title="1-2 · Investor profile and financial readiness">
 			<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<div class="rounded-xl border border-line bg-raised/50 p-4"><p class="muted text-[11px] uppercase">Readiness</p><p class="mt-1 font-semibold">{labelize(passport.readiness.status)}</p></div>
 				<div class="rounded-xl border border-line bg-raised/50 p-4"><p class="muted text-[11px] uppercase">Monthly surplus</p><p class="mt-1 font-semibold">{inr(metrics.monthly_surplus as string)}</p></div>
@@ -67,11 +68,38 @@
 			<p class="mt-4 text-[13px] leading-relaxed">{passport.readiness.explanation}</p>
 			{#if passport.readiness.blockers.length > 0}
 				<h3 class="mt-4 text-[12px] font-semibold uppercase tracking-wider text-muted">Blockers at the time</h3>
-				<ul class="mt-2 list-disc space-y-1 pl-5 text-[13px]">{#each passport.readiness.blockers as item (item)}<li>{item}</li>{/each}</ul>
+				<ul class="mt-2 list-disc space-y-1 pl-5 text-[13px]">{#each passport.readiness.blockers as item, i (i)}<li>{item}</li>{/each}</ul>
 			{/if}
 		</Card>
 
-		<Card title="3–4 · Objective and horizon">
+		{#if rec}
+			<Card title="Recommended Allocation Snapshot (Textual &amp; Numerical)" subtitle={rec.tone_label}>
+				<p class="font-semibold text-ink">{rec.headline}</p>
+				<p class="muted mt-1.5 text-[13px] leading-relaxed">{rec.summary}</p>
+				<div class="table-wrap mt-4">
+					<table class="data-table">
+						<thead><tr><th>Instrument</th><th>Role</th><th>Weight</th><th>Monthly Amount</th><th>Action</th></tr></thead>
+						<tbody>
+							{#each rec.asset_allocations as item (item.symbol)}
+								<tr>
+									<td>{item.name} ({item.symbol})</td>
+									<td>{item.role}</td>
+									<td class="whitespace-nowrap font-semibold tabular-nums text-brand-soft">{item.allocation_pct}%</td>
+									<td class="whitespace-nowrap font-semibold tabular-nums">{inr(item.monthly_amount_inr)}/mo</td>
+									<td class="whitespace-nowrap">
+										<span class="badge-pill {item.action_status === 'DEPLOY_NOW' ? 'border-brand/40 bg-brand/10 text-brand-soft' : item.action_status === 'STAGE_CAUTIOUSLY' ? 'border-amber/40 bg-amber/10 text-amber' : 'border-azure/40 bg-azure/10 text-azure'}">
+											{labelize(item.action_status)}
+										</span>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			</Card>
+		{/if}
+
+		<Card title="3-4 · Objective and horizon">
 			<dl class="kv">
 				<div><dt>Stated objective</dt><dd>{passport.objective}</dd></div>
 				<div><dt>Horizon</dt><dd>{passport.horizon.months === null ? 'Not set' : `${passport.horizon.months} months`} <span class="muted">({labelize(passport.horizon.basis)})</span></dd></div>
@@ -83,7 +111,7 @@
 				{#if passport.research}<p class="text-[13px] leading-relaxed">{passport.research.analyst_thesis}</p>{:else}<p class="muted">No research analysis was attached. No investment thesis is recorded.</p>{/if}
 			</Card>
 			<Card title="6 · Counter-thesis">
-				{#if passport.research}<p class="text-[13px] leading-relaxed">{passport.research.counter_thesis}</p>{:else}<p class="muted">No Devil’s Advocate output was attached.</p>{/if}
+				{#if passport.research}<p class="text-[13px] leading-relaxed">{passport.research.counter_thesis}</p>{:else}<p class="muted">No Devil's Advocate output was attached.</p>{/if}
 			</Card>
 		</div>
 
@@ -91,7 +119,7 @@
 			{#if passport.research}
 				<div class="mb-3 flex flex-wrap items-center gap-2"><StatusBadge status={passport.research.evaluator_status} /><span class="muted">Evidence quality {passport.research.evidence_quality.score}/100 · {passport.research.evidence_quality.label}</span></div>
 				{#if passport.research.material_risks.length === 0}<p class="muted">No stored value breaches a documented risk rule.</p>{:else}
-					<ul class="list-disc space-y-1 pl-5 text-[13px]">{#each passport.research.material_risks as r (r.code)}<li>{r.label} — {r.observed_value} ({r.period}), source {r.evidence_key}</li>{/each}</ul>
+					<ul class="list-disc space-y-1 pl-5 text-[13px]">{#each passport.research.material_risks as r, i (i)}<li>{r.label} - {r.observed_value} ({r.period}), source {r.evidence_key}</li>{/each}</ul>
 				{/if}
 			{:else}<p class="muted">No research was attached.</p>{/if}
 		</Card>
@@ -112,8 +140,8 @@
 			{#if passport.simulation}
 				<dl class="kv">
 					<div><dt>Scenario</dt><dd>{labelize(passport.simulation.scenario_type)} · {labelize(passport.simulation.market_path)}</dd></div>
-					<div><dt>Amounts</dt><dd>{passport.simulation.financially_available ? 'From the investor’s profile' : 'Hypothetical — not financially available'}</dd></div>
-					<div><dt>Window</dt><dd>{dateLabel(passport.simulation.window.start)} → {dateLabel(passport.simulation.window.end)}</dd></div>
+					<div><dt>Amounts</dt><dd>{passport.simulation.financially_available ? 'From the investor profile' : 'Hypothetical - not financially available'}</dd></div>
+					<div><dt>Window</dt><dd>{dateLabel(passport.simulation.window.start)} to {dateLabel(passport.simulation.window.end)}</dd></div>
 					<div><dt>Ending value</dt><dd>{inr(passport.simulation.primary_metrics.ending_value as string)}</dd></div>
 					<div><dt>Money put in</dt><dd>{inr(passport.simulation.primary_metrics.total_contributions as string)}</dd></div>
 					<div><dt>Time-weighted return</dt><dd>{pct(passport.simulation.primary_metrics.time_weighted_return_pct, 2)}</dd></div>
@@ -124,28 +152,28 @@
 			{/if}
 		</Card>
 
-		<Card title="10–12 · Evidence, timestamps and missing information">
+		<Card title="10-12 · Evidence, timestamps and missing information">
 			<div class="space-y-3">
 				{#each passport.evidence_references as ev (ev.evidence_key)}
 					<article class="rounded-xl border border-line bg-raised/40 p-4">
 						<div class="flex flex-wrap items-center gap-2">
 							<code class="text-[11px] text-brand-soft">{ev.evidence_key}</code>
-							<span class="rounded-full border border-amber/40 px-2 py-0.5 text-[10px] uppercase text-amber">{ev.verification_status}</span>
+							<span class="badge-pill border-amber/40 text-amber">{ev.verification_status}</span>
 							<span class="ml-auto text-[11px] text-muted">Published {dateLabel(ev.publication_date)}</span>
 						</div>
 						<p class="mt-2 text-[13px] font-medium">{ev.title}</p>
-						<ul class="muted mt-1 list-disc pl-5">{#each ev.claims as claim (claim)}<li>{claim}</li>{/each}</ul>
+						<ul class="muted mt-1 list-disc pl-5">{#each ev.claims as claim, i (i)}<li>{claim}</li>{/each}</ul>
 					</article>
 				{:else}
 					<p class="muted">No evidence identifiers were cited.</p>
 				{/each}
 			</div>
 			<h3 class="mt-5 text-[12px] font-semibold uppercase tracking-wider text-muted">Missing information</h3>
-			<ul class="mt-2 list-disc space-y-1 pl-5 text-[13px] text-warn">{#each passport.missing_information as item (item)}<li>{item}</li>{/each}</ul>
+			<ul class="mt-2 list-disc space-y-1 pl-5 text-[13px] text-warn">{#each passport.missing_information as item, i (i)}<li>{item}</li>{/each}</ul>
 		</Card>
 
 		<Card title="13 · Assumptions and versions">
-			<ul class="list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed">{#each passport.assumptions as item (item)}<li>{item}</li>{/each}</ul>
+			<ul class="list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed">{#each passport.assumptions as item, i (i)}<li>{item}</li>{/each}</ul>
 			<dl class="kv mt-4">
 				{#each Object.entries(passport.versions) as [key, value] (key)}<div><dt>{labelize(key)} version</dt><dd>{value ?? 'not used'}</dd></div>{/each}
 			</dl>
@@ -162,7 +190,7 @@
 				{/each}
 			</div>
 			<h3 class="mt-5 text-[12px] font-semibold uppercase tracking-wider text-muted">This thesis depends on</h3>
-			<ul class="mt-2 list-disc space-y-1 pl-5 text-[13px]">{#each passport.thesis_expiry.depends_on as item (item)}<li>{item}</li>{/each}</ul>
+			<ul class="mt-2 list-disc space-y-1 pl-5 text-[13px]">{#each passport.thesis_expiry.depends_on as item, i (i)}<li>{item}</li>{/each}</ul>
 		</Card>
 
 		<Card title="Disclaimer"><p class="muted">{passport.disclaimer}</p></Card>

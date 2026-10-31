@@ -11,13 +11,13 @@ def _asset_id(client, symbol):
     return next(a["id"] for a in client.get("/api/assets").json()["assets"] if a["symbol"] == symbol)
 
 
-def test_catalogue_is_synthetic_and_public(new_client):
+def test_catalogue_is_verified_and_public(new_client):
     body = new_client.get("/api/assets").json()
     assert len(body["assets"]) == 8
-    assert all(a["is_synthetic"] for a in body["assets"])
+    assert all(not a["is_synthetic"] for a in body["assets"])
     history = new_client.get(f"/api/assets/{body['assets'][0]['id']}/history?interval=monthly&from=2024-01-01&to=2024-12-31")
     assert history.status_code == 200
-    assert history.json()["is_synthetic"] is True
+    assert history.json()["is_synthetic"] is False
     assert len(history.json()["points"]) == 12
 
 
@@ -40,20 +40,22 @@ def test_rahul_journey_is_constrained_and_never_simulates_invented_money(app):
     assert readiness["metrics"]["investable_monthly"] == "0.00"
     assert readiness["metrics"]["unallocated_liquid"] == "0.00"
     assert readiness["metrics"]["goal_horizon_months"] == 10
+    assert readiness["recommendations"]["readiness_status"] == "NOT_READY"
+    assert readiness["recommendations"]["asset_allocations"]
 
     timing = client.post("/api/timing/analyze", json={"profile_id": pid}, headers=csrf(client)).json()["timing"]
     assert timing["verdict_code"] == "RESERVE_FIRST"
     assert timing["clocks"]["goal"]["status"] == "CRITICAL"
 
     refused = client.post("/api/simulator/run", json={
-        "profile_id": pid, "asset_id": _asset_id(client, "SYN-IDX-BROAD50"), "scenario_type": "STAGED_INITIAL",
+        "profile_id": pid, "asset_id": _asset_id(client, "UTI-NIFTY50"), "scenario_type": "STAGED_INITIAL",
         "amount_source": "PROFILE_DERIVED", "duration_months": 24,
     }, headers=csrf(client))
     assert refused.status_code == 422
     assert "NOT_READY" in refused.json()["detail"]
 
     hypothetical = client.post("/api/simulator/run", json={
-        "profile_id": pid, "asset_id": _asset_id(client, "SYN-IDX-BROAD50"), "scenario_type": "LUMP_SUM",
+        "profile_id": pid, "asset_id": _asset_id(client, "UTI-NIFTY50"), "scenario_type": "LUMP_SUM",
         "amount_source": "USER_HYPOTHETICAL", "initial_amount": "10000", "duration_months": 12,
         "evaluation_date": "2025-12-31",
     }, headers=csrf(client))
@@ -61,7 +63,7 @@ def test_rahul_journey_is_constrained_and_never_simulates_invented_money(app):
     assert hypothetical.json()["simulation"]["financially_available"] is False
 
     research = client.post("/api/research/analyze", json={
-        "profile_id": pid, "asset_id": _asset_id(client, "SYN-EQ-SOLARIS")}, headers=csrf(client))
+        "profile_id": pid, "asset_id": _asset_id(client, "TATAPOWER.NS")}, headers=csrf(client))
     assert research.status_code == 201
     assert research.json()["analysis"]["evaluation"]["status"] == "FINANCIAL_CONSTRAINTS_IDENTIFIED"
 
@@ -84,11 +86,13 @@ def test_priya_journey_explores_with_traceable_evidence_and_matching_passport(ap
     assert readiness["metrics"]["monthly_surplus"] == "40000.00"
     assert readiness["metrics"]["investable_monthly"] == "19416.67"
     assert readiness["metrics"]["designated_monthly"] == "15000.00"
+    assert readiness["recommendations"]["readiness_status"] == "READY_TO_EXPLORE"
+    assert readiness["recommendations"]["monthly_plan"]["recommended_market_deployment_inr"] == "15000.00"
 
-    meridian = _asset_id(client, "SYN-EQ-MERIDIAN")
-    solaris = _asset_id(client, "SYN-EQ-SOLARIS")
-    rec_m = client.post("/api/research/analyze", json={"profile_id": pid, "asset_id": meridian}, headers=csrf(client)).json()["analysis"]
-    rec_s = client.post("/api/research/analyze", json={"profile_id": pid, "asset_id": solaris}, headers=csrf(client)).json()["analysis"]
+    tcs = _asset_id(client, "TCS.NS")
+    tatapower = _asset_id(client, "TATAPOWER.NS")
+    rec_m = client.post("/api/research/analyze", json={"profile_id": pid, "asset_id": tcs}, headers=csrf(client)).json()["analysis"]
+    rec_s = client.post("/api/research/analyze", json={"profile_id": pid, "asset_id": tatapower}, headers=csrf(client)).json()["analysis"]
 
     assert rec_m["evaluation"]["status"] == "FURTHER_RESEARCH_REQUIRED"
     assert rec_s["evaluation"]["status"] == "MATERIAL_RISKS_IDENTIFIED"
@@ -98,12 +102,12 @@ def test_priya_journey_explores_with_traceable_evidence_and_matching_passport(ap
                 assert check["status"] == "HYPOTHESIS"
             elif check["evidence_key"]:
                 assert check["status"] != "UNSUPPORTED"
-        assert analysis["evaluation"]["data_status"]["synthetic_evidence_used"] is True
+        assert analysis["evaluation"]["data_status"]["synthetic_evidence_used"] is False
         assert analysis["analyst"]["claims"]
         assert analysis["devil"]["counter_thesis"]
 
     sim = client.post("/api/simulator/run", json={
-        "profile_id": pid, "asset_id": meridian, "scenario_type": "STAGED_INITIAL",
+        "profile_id": pid, "asset_id": tcs, "scenario_type": "STAGED_INITIAL",
         "amount_source": "PROFILE_DERIVED", "duration_months": 36, "contribution_frequency": "MONTHLY",
     }, headers=csrf(client))
     assert sim.status_code == 201, sim.text
@@ -123,14 +127,14 @@ def test_priya_journey_explores_with_traceable_evidence_and_matching_passport(ap
     assert passport.status_code == 201, passport.text
     snap = passport.json()["passport"]
     assert snap["readiness"]["status"] == "READY_TO_EXPLORE"
-    assert snap["research"]["asset"]["symbol"] == "SYN-EQ-MERIDIAN"
+    assert snap["research"]["asset"]["symbol"] == "TCS.NS"
     assert snap["research"]["evaluator_status"] == rec_m["evaluation"]["status"]
     assert snap["simulation"]["simulation_id"] == simulation["simulation_id"]
     assert snap["simulation"]["financially_available"] is True
-    assert snap["data_status"]["synthetic_data_used"] is True
+    assert snap["data_status"]["synthetic_data_used"] is False
     assert snap["thesis_expiry"]["depends_on"]
     assert snap["review_conditions"]
-    assert all(ref["verification_status"] == "SYNTHETIC" for ref in snap["evidence_references"])
+    assert all(ref["verification_status"] == "VERIFIED" for ref in snap["evidence_references"])
 
     listing = client.get(f"/api/passport/profile/{pid}").json()["passports"]
     assert any(p["id"] == snap["passport_id"] for p in listing)
@@ -166,6 +170,6 @@ def test_health_reports_engine_versions_and_no_secrets(new_client):
     body = new_client.get("/api/health").json()
     assert body["ok"] is True
     assert body["language_model"]["enabled"] is False
-    assert body["market_data"]["is_live"] is False
+    assert body["market_data"]["is_live"] is True
     assert "readiness" in body["rule_versions"]
     assert "key" not in str(body).lower()

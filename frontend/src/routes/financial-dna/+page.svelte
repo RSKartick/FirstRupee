@@ -2,7 +2,7 @@
 	import { api, ApiError } from '$lib/api/client';
 	import type { Readiness } from '$lib/api/types';
 	import { session } from '$lib/stores/session.svelte';
-	import { labelize, months } from '$lib/format';
+	import { inr, labelize, months, pct } from '$lib/format';
 	import Card from '$lib/components/Card.svelte';
 	import Notice from '$lib/components/Notice.svelte';
 	import Stat from '$lib/components/Stat.svelte';
@@ -35,13 +35,14 @@
 	}
 
 	const m = $derived(readiness?.metrics ?? {});
+	const rec = $derived(readiness?.recommendations ?? null);
 	const score = (value: unknown) => (value === null || value === undefined ? 'Unknown' : `${value} / 100`);
 </script>
 
-<svelte:head><title>Financial DNA — FirstRupee</title></svelte:head>
+<svelte:head><title>Financial DNA - FirstRupee</title></svelte:head>
 
 {#if loading}
-	<p class="muted" role="status">Loading your Financial DNA…</p>
+	<p class="muted" role="status">Loading your Financial DNA...</p>
 {:else if error}
 	<Notice tone="danger">{error}</Notice>
 {:else if !readiness}
@@ -55,11 +56,14 @@
 			<p class="text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-soft">Financial DNA</p>
 			<h1 class="mt-2 text-2xl font-semibold tracking-tight">Your financial profile, assessed in parts</h1>
 			<p class="muted mt-2 max-w-3xl">
-				Each component below is a documented calculation from your inputs. None of them is a validated psychometric or credit-style
-				score. Scores are guardrails for a first-time investor and can change when the rule set or your inputs change.
+				Each component below is a documented calculation from your inputs. Scores are deterministic guardrails for Indian retail
+				investors and drive the textual and numerical portfolio recommendations below.
 			</p>
 			<div class="mt-4 flex flex-wrap items-center gap-2">
 				<StatusBadge status={readiness.status} />
+				<span class="rounded-full border border-brand/40 bg-brand/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-soft">
+					Experience: {labelize(experience)}
+				</span>
 				<span class="text-[11px] text-muted">Rule set {readiness.rule_version}</span>
 			</div>
 		</section>
@@ -68,8 +72,41 @@
 			<Stat label="Behavioural tolerance" value={labelize(String(m.risk_tolerance_band))} hint="How you would react to a fall and how long you can wait. Willingness only." tone="info" />
 			<Stat label="Financial capacity" value={labelize(String(m.risk_capacity_band))} hint="Ability to absorb a loss: reserves, surplus, loans, income stability and horizon." tone={m.risk_capacity_band === 'LOW' ? 'danger' : m.risk_capacity_band === 'HIGH' ? 'success' : 'warn'} />
 			<Stat label="Horizon" value={months(m.goal_horizon_months as number | null)} hint={`Basis: ${labelize(String(m.horizon_basis))}`} />
-			<Stat label="Experience (self-declared)" value={labelize(experience)} hint="Changes explanations, never the readiness result." />
+			<Stat label="Experience (self-declared)" value={labelize(experience)} hint="Tailors recommendation complexity and instrument mix." />
 		</div>
+
+		{#if rec}
+			<Card title="DNA-Derived Allocation Blueprint" subtitle={rec.tone_label}>
+				<p class="text-base font-semibold text-ink">{rec.headline}</p>
+				<p class="muted mt-2 text-[13px] leading-relaxed">{rec.summary}</p>
+				<div class="mt-4 grid gap-3 sm:grid-cols-3">
+					<div class="rounded-xl border border-line bg-raised/40 p-3">
+						<p class="text-[11px] uppercase text-muted">Equity Allocation</p>
+						<p class="mt-1 text-lg font-semibold text-brand-soft">{rec.category_split_pct.equity_pct}%</p>
+					</div>
+					<div class="rounded-xl border border-line bg-raised/40 p-3">
+						<p class="text-[11px] uppercase text-muted">Fixed Income &amp; Liquid</p>
+						<p class="mt-1 text-lg font-semibold text-azure">{rec.category_split_pct.fixed_income_and_liquid_pct}%</p>
+					</div>
+					<div class="rounded-xl border border-line bg-raised/40 p-3">
+						<p class="text-[11px] uppercase text-muted">Gold Bullion ETF</p>
+						<p class="mt-1 text-lg font-semibold text-amber">{rec.category_split_pct.gold_pct}%</p>
+					</div>
+				</div>
+				<div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+					{#each rec.asset_allocations as item (item.symbol)}
+						<div class="rounded-lg border border-line bg-canvas/70 p-3">
+							<div class="flex items-center justify-between gap-1">
+								<span class="text-[12px] font-semibold">{item.symbol}</span>
+								<span class="text-[12px] font-semibold text-brand-soft">{item.allocation_pct}%</span>
+							</div>
+							<p class="mt-0.5 text-[11px] text-muted">{item.name}</p>
+							<p class="mt-2 text-sm font-semibold tabular-nums">{inr(item.monthly_amount_inr)}/mo</p>
+						</div>
+					{/each}
+				</div>
+			</Card>
+		{/if}
 
 		<div class="grid gap-6 lg:grid-cols-2">
 			<Card title="Risk tolerance and capacity, kept apart" subtitle="Tolerance is behaviour; capacity is ability. A high tolerance never compensates for low capacity.">
@@ -97,14 +134,14 @@
 
 			<Card title="Cash flow, obligations and liquidity" subtitle="Every figure is from the engine and is explained with its inputs.">
 				<dl class="kv">
-					<div><dt>Monthly surplus</dt><dd>{m.monthly_surplus ?? 'n/a'}</dd></div>
+					<div><dt>Monthly surplus</dt><dd>{inr(m.monthly_surplus as string)}</dd></div>
 					<div><dt>Emergency coverage</dt><dd>{m.emergency_coverage_months ? `${m.emergency_coverage_months} months` : 'Unknown'}</dd></div>
-					<div><dt>Emergency gap to 6 months</dt><dd>{m.emergency_gap ?? 'n/a'}</dd></div>
-					<div><dt>Goal monthly need</dt><dd>{m.goal_monthly_need ?? 'n/a'}</dd></div>
-					<div><dt>Free monthly money</dt><dd>{m.investable_monthly ?? 'n/a'}</dd></div>
-					<div><dt>Free liquid balance</dt><dd>{m.unallocated_liquid ?? 'n/a'}</dd></div>
-					<div><dt>Loan balances</dt><dd>{m.liabilities ?? 'n/a'}</dd></div>
-					<div><dt>Debt to annual income</dt><dd>{m.debt_to_annual_income ?? 'n/a'}</dd></div>
+					<div><dt>Emergency gap to 6 months</dt><dd>{inr(m.emergency_gap as string)}</dd></div>
+					<div><dt>Goal monthly need</dt><dd>{inr(m.goal_monthly_need as string)}</dd></div>
+					<div><dt>Free monthly money</dt><dd>{inr(m.investable_monthly as string)}</dd></div>
+					<div><dt>Free liquid balance</dt><dd>{inr(m.unallocated_liquid as string)}</dd></div>
+					<div><dt>Loan balances</dt><dd>{inr(m.liabilities as string)}</dd></div>
+					<div><dt>Debt to annual income</dt><dd>{m.debt_to_annual_income ? pct(Number(m.debt_to_annual_income) * 100, 1) : 'n/a'}</dd></div>
 				</dl>
 			</Card>
 		</div>

@@ -77,6 +77,68 @@ export interface Finding {
 	inputs: Record<string, string | number | boolean | null>;
 }
 
+export interface RecommendedAssetAllocation {
+	symbol: string;
+	name: string;
+	asset_type: string;
+	role: string;
+	allocation_pct: number;
+	monthly_amount_inr: string;
+	lump_sum_amount_inr: string;
+	action_status: 'DEPLOY_NOW' | 'STAGE_CAUTIOUSLY' | 'PARK_SAFELY_UNTIL_READY';
+	rationale: string;
+}
+
+export interface Recommendations {
+	experience_level: 'BEGINNER' | 'INTERMEDIATE' | 'EXPERIENCED';
+	tone_label: string;
+	readiness_status: 'NOT_READY' | 'PREPARATION' | 'READY_TO_EXPLORE';
+	headline: string;
+	summary: string;
+	textual_guidelines: string[];
+	category_split_pct: {
+		equity_pct: number;
+		fixed_income_and_liquid_pct: number;
+		gold_pct: number;
+	};
+	monthly_plan: {
+		monthly_income_inr: string;
+		committed_outflow_inr: string;
+		monthly_surplus_inr: string;
+		emergency_topup_inr: string;
+		emergency_topup_pct: number;
+		debt_prepayment_inr: string;
+		debt_prepayment_pct: number;
+		goal_reserve_inr: string;
+		goal_reserve_pct: number;
+		investable_capacity_inr: string;
+		recommended_market_deployment_inr: string;
+		recommended_market_deployment_pct: number;
+	};
+	lump_sum_plan: {
+		liquid_savings_inr: string;
+		emergency_locked_inr: string;
+		goal_locked_inr: string;
+		unallocated_liquid_inr: string;
+		immediate_reserve_boost_inr: string;
+		staged_market_deployment_inr: string;
+		recommended_tranches_months: number;
+		monthly_tranche_inr: string;
+	};
+	asset_allocations: RecommendedAssetAllocation[];
+}
+
+export interface MarketBenchmark {
+	symbol: string;
+	label: string;
+	category: string;
+	price: string;
+	day_change_pct: number;
+	trailing_1y_pct: number;
+	as_of: string;
+	source: string;
+}
+
 export interface Readiness {
 	status: 'NOT_READY' | 'PREPARATION' | 'READY_TO_EXPLORE';
 	completeness: 'COMPLETE' | 'INCOMPLETE';
@@ -84,6 +146,7 @@ export interface Readiness {
 	as_of: string;
 	profile_updated_at: string | null;
 	metrics: Record<string, string | number | null>;
+	recommendations?: Recommendations;
 	capacity_detail: { components: Record<string, { score: string; weight: number }>; caps: { code: string; cap: number; reason: string }[] };
 	findings: Finding[];
 	blockers: string[];
@@ -110,6 +173,8 @@ export interface AssetSummary {
 	observations: number;
 	first_observation: string | null;
 	last_observation: string | null;
+	latest_price?: string | null;
+	day_change_pct?: number | null;
 }
 
 export interface AssetDetail extends AssetSummary {
@@ -274,6 +339,7 @@ export interface Passport {
 	objective: string;
 	horizon: { months: number | null; basis: string };
 	readiness: Readiness;
+	recommendations?: Recommendations;
 	timing: Timing;
 	research: null | {
 		analysis_id: number;

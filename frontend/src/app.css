@@ -159,6 +159,23 @@ body {
 	vertical-align: top;
 }
 
+.badge-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	white-space: nowrap;
+	border-radius: 9999px;
+	border-width: 1px;
+	border-style: solid;
+	padding: 0.15rem 0.6rem;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	line-height: 1.4;
+	text-transform: uppercase;
+}
+
 .kv {
 	display: grid;
 	gap: 0;

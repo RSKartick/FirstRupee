@@ -162,7 +162,7 @@
 	const selectClass = 'field-input';
 </script>
 
-<svelte:head><title>Financial DNA assessment — FirstRupee</title></svelte:head>
+<svelte:head><title>Financial DNA assessment - FirstRupee</title></svelte:head>
 
 <div class="mx-auto max-w-3xl space-y-6">
 	<div>
@@ -205,11 +205,11 @@
 						<div>
 							<label class="field-label" for="ageRange">Age range</label>
 							<select id="ageRange" class={selectClass} bind:value={draft.ageRange}>
-								<option value="">Select…</option>
-								<option value="TEN_TO_TWENTY">18–20</option>
-								<option value="TWENTY_TO_THIRTY">20–30</option>
-								<option value="THIRTY_TO_FORTY">30–40</option>
-								<option value="FORTY_TO_SIXTY">40–60</option>
+								<option value="">Select...</option>
+								<option value="TEN_TO_TWENTY">18-20</option>
+								<option value="TWENTY_TO_THIRTY">20-30</option>
+								<option value="THIRTY_TO_FORTY">30-40</option>
+								<option value="FORTY_TO_SIXTY">40-60</option>
 								<option value="SIXTY_PLUS">60+</option>
 							</select>
 							{#if showErrors && errors.ageRange}<p class="field-error">{errors.ageRange}</p>{/if}
@@ -366,10 +366,10 @@
 						<div>
 							<label class="field-label" for="experience">Investment experience</label>
 							<select id="experience" class={selectClass} bind:value={draft.investmentExperience}>
-								<option value="">Select…</option>
-								<option value="BEGINNER">Beginner — mostly savings accounts or deposits</option>
-								<option value="INTERMEDIATE">Intermediate — some funds or shares</option>
-								<option value="EXPERIENCED">Experienced — several market cycles</option>
+								<option value="">Select...</option>
+								<option value="BEGINNER">Beginner - mostly savings accounts or deposits (plain-English recommendations)</option>
+								<option value="INTERMEDIATE">Intermediate - some funds or shares (core-satellite recommendations)</option>
+								<option value="EXPERIENCED">Experienced - several market cycles (quantitative recommendations)</option>
 							</select>
 							{#if showErrors && errors.investmentExperience}<p class="field-error">{errors.investmentExperience}</p>{/if}
 						</div>
@@ -413,7 +413,7 @@
 							<label class="field-label" for="goalLiquidity">How soon might you need this money?</label>
 							<select id="goalLiquidity" class={selectClass} bind:value={draft.goalLiquidity}>
 								<option value="">Not specified</option>
-								<option value="LOW">Not soon — I can wait</option>
+								<option value="LOW">Not soon - I can wait</option>
 								<option value="MEDIUM">Possibly within a few years</option>
 								<option value="HIGH">It may be needed at short notice</option>
 							</select>
@@ -485,7 +485,7 @@
 				{#if step === 6}
 					<div class="space-y-4">
 						<dl class="kv">
-							<div><dt>Name</dt><dd>{draft.displayName || '—'}</dd></div>
+							<div><dt>Name</dt><dd>{draft.displayName || 'n/a'}</dd></div>
 							<div><dt>Monthly income</dt><dd>{inr(draft.monthlyIncome || null)}</dd></div>
 							<div><dt>Essential expenses</dt><dd>{inr(draft.essentialExpenses || null)}</dd></div>
 							<div><dt>EMIs</dt><dd>{inr(draft.monthlyEmi || '0')}</dd></div>

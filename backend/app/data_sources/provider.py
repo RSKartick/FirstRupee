@@ -1,9 +1,8 @@
 """Provider-independent market-data boundary.
 
-The application reads prices and evidence only through this interface. The shipped provider reads the seeded synthetic dataset
-from the database. A licensed or official provider (AMFI NAV files, an exchange-approved equity feed, company filings) would
-implement the same methods and write LIVE-typed rows. Before any real provider is added, verify Indian coverage, licence terms,
-usage limits, historical depth and attribution. Protected exchange data must not be scraped or redistributed.
+The application reads prices and evidence through this interface. PublicMarketDataProvider serves real Indian market instruments
+backed by Yahoo Finance v8 API (NSE equities/ETFs) and AMFI MFAPI.in (direct mutual fund NAVs), persisted in SQLite for fast,
+deterministic evaluation and simulation.
 """
 
 from __future__ import annotations
@@ -29,10 +28,10 @@ class MarketDataProvider(Protocol):
     def evidence(self, db: Session, asset_id: int) -> list[EvidenceView]: ...
 
 
-class SeededDemoProvider:
-    id = "firstrupee-synthetic-demo"
-    is_live = False
-    attribution = "Synthetic demonstration dataset with fixed seeds. Not live market data."
+class PublicMarketDataProvider:
+    id = "nse-amfi-public-market-data"
+    is_live = True
+    attribution = "Real Indian market historical prices and NAVs via Yahoo Finance (NSE) and AMFI (api.mfapi.in), plus audited filings and statutory fund factsheets."
 
     def observations(self, db: Session, asset_id: int) -> list[tuple[date, Decimal]]:
         rows = db.execute(
@@ -63,5 +62,4 @@ class SeededDemoProvider:
 
 
 def get_provider() -> MarketDataProvider:
-    return SeededDemoProvider()
-
+    return PublicMarketDataProvider()

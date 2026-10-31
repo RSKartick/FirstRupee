@@ -97,7 +97,7 @@ def rule_based_analyst(asset: dict[str, Any], records: list[EvidenceView]) -> di
                                      "opmPct", f"{values['opmPct']:.4f}", latest.period))
 
     for doc in records:
-        if doc.source_type == "SYNTHETIC_DOCUMENT" and doc.summary:
+        if doc.source_type in ("SYNTHETIC_DOCUMENT", "REGULATORY_FILING") and doc.summary:
             developments.append(doc.summary)
             claims.append(_claim(doc.summary, doc.key, claim_type="QUALITATIVE"))
 

@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-READINESS_RULE_VERSION = "readiness-rules-v2.0"
+READINESS_RULE_VERSION = "readiness-rules-v2.1"
 TIMING_RULE_VERSION = "timing-rules-v2.0"
 SIMULATOR_VERSION = "simulator-v2.0"
 EVALUATOR_VERSION = "evaluator-rules-v2.0"

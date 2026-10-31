@@ -7,7 +7,7 @@
 	let busy = $state('');
 	let error = $state('');
 
-	async function loadDemo(key: 'rahul' | 'priya') {
+	async function loadDemo(key: 'rahul' | 'priya' | 'arjun') {
 		busy = key;
 		error = '';
 		try {
@@ -16,14 +16,14 @@
 			await loadProfiles(res.profile_id);
 			await goto('/dashboard');
 		} catch (err) {
-			error = err instanceof ApiError ? err.message : 'The demo workspace could not be created.';
+			error = err instanceof ApiError ? err.message : 'The workspace could not be created.';
 		} finally {
 			busy = '';
 		}
 	}
 </script>
 
-<svelte:head><title>FirstRupee — Understand your money before you risk it</title></svelte:head>
+<svelte:head><title>FirstRupee - Understand your money before you risk it</title></svelte:head>
 
 <div class="space-y-16">
 	<section class="card !p-10 sm:!p-14">
@@ -68,23 +68,30 @@
 	<section class="card">
 		<div class="card-head">
 			<div>
-				<h2>Try the two fictional demonstration investors</h2>
-				<p class="muted mt-1">Each button creates a private copy of the demo profile for your session. Nothing is shared between visitors, and the figures are fictional.</p>
+				<h2>Explore instant investor case studies (or build your own profile above)</h2>
+				<p class="muted mt-1">Each button creates a private workspace pre-loaded with a realistic Indian household profile so you can immediately inspect NOT READY, Beginner Ready, and Experienced Ready recommendations.</p>
 			</div>
 		</div>
-		<div class="grid gap-4 md:grid-cols-2">
+		<div class="grid gap-4 md:grid-cols-3">
 			<div class="rounded-xl border border-line bg-raised/40 p-5">
-				<p class="font-semibold">Rahul — a constrained first-time saver</p>
-				<p class="muted mt-2">₹30,000 income, ₹4,000 surplus, one month of essentials in reserve and a 10-month goal. Shows why liquidity and reserves come before any market exposure.</p>
+				<p class="font-semibold">Rahul - Constrained Early-Career Saver (NOT READY)</p>
+				<p class="muted mt-2">Rs 30,000 income, Rs 4,000 surplus, 1 month of essentials in reserve and a 10-month goal. Shows why liquid reserves come before market exposure.</p>
 				<button class="btn btn-primary mt-4" onclick={() => loadDemo('rahul')} disabled={busy !== ''}>
-					{busy === 'rahul' ? 'Creating workspace…' : 'Open Rahul’s workspace'}
+					{busy === 'rahul' ? 'Opening workspace...' : 'Open Rahul Workspace'}
 				</button>
 			</div>
 			<div class="rounded-xl border border-line bg-raised/40 p-5">
-				<p class="font-semibold">Priya — a profile ready to explore</p>
-				<p class="muted mt-2">₹80,000 income, ₹40,000 surplus, 8 months of reserves and a 10-year goal. Shows how research and staged, designated amounts are evaluated.</p>
+				<p class="font-semibold">Priya - Ready to Explore (Beginner Mode)</p>
+				<p class="muted mt-2">Rs 80,000 income, Rs 40,000 surplus, 8.3 months of reserves and a 10-year goal. Shows beginner-friendly plain-English textual and numerical allocations.</p>
 				<button class="btn btn-primary mt-4" onclick={() => loadDemo('priya')} disabled={busy !== ''}>
-					{busy === 'priya' ? 'Creating workspace…' : 'Open Priya’s workspace'}
+					{busy === 'priya' ? 'Opening workspace...' : 'Open Priya Workspace'}
+				</button>
+			</div>
+			<div class="rounded-xl border border-line bg-raised/40 p-5">
+				<p class="font-semibold">Arjun - Experienced Portfolio Builder (Quant Mode)</p>
+				<p class="muted mt-2">Rs 1,50,000 income, zero debt, Rs 2,00,000 unallocated liquid capital, and Experienced mode enabled for technical core-satellite allocation.</p>
+				<button class="btn btn-primary mt-4" onclick={() => loadDemo('arjun')} disabled={busy !== ''}>
+					{busy === 'arjun' ? 'Opening workspace...' : 'Open Arjun Workspace'}
 				</button>
 			</div>
 		</div>

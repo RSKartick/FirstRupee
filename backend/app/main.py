@@ -22,6 +22,7 @@ from app.core.config import get_settings
 from app.core.errors import DomainError
 from app.db.migrate import run_migrations
 from app.db.session import SessionLocal
+from app.data_sources.provider import get_provider
 from app.seed import seed_catalog
 from app.services.financial_engine.rules import (
     EVALUATOR_VERSION,
@@ -85,6 +86,7 @@ def create_app() -> FastAPI:
         with SessionLocal() as session:
             session.execute(text("SELECT 1"))
         llm = settings.llm_enabled
+        provider = get_provider()
         return {
             "ok": True,
             "service": "firstrupee-api",
@@ -99,7 +101,7 @@ def create_app() -> FastAPI:
                 "passport": PASSPORT_SCHEMA_VERSION,
             },
             "language_model": {"enabled": llm, "provider": settings.llm_provider if llm else "none"},
-            "market_data": {"provider": "firstrupee-synthetic-demo", "is_live": False},
+            "market_data": {"provider": provider.id, "is_live": provider.is_live},
         }
 
     return app

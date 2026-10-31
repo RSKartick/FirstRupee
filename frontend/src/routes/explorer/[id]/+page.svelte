@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { api, ApiError } from '$lib/api/client';
 	import type { AssetPage, HistoryPoint } from '$lib/api/types';
-	import { dateLabel, labelize, pct, readinessTone } from '$lib/format';
+	import { dateLabel, inr, labelize, pct, readinessTone, signedPct } from '$lib/format';
 	import Card from '$lib/components/Card.svelte';
 	import LineChart from '$lib/components/LineChart.svelte';
 	import Notice from '$lib/components/Notice.svelte';
@@ -32,30 +32,36 @@
 	const market = $derived(data?.market_context);
 </script>
 
-<svelte:head><title>{data?.asset.name ?? 'Instrument'} — FirstRupee</title></svelte:head>
+<svelte:head><title>{data?.asset.name ?? 'Instrument'} - FirstRupee</title></svelte:head>
 
 {#if error}
 	<Notice tone="danger" title="Not available">{error}</Notice>
 {:else if !data}
-	<p class="muted" role="status">Loading instrument…</p>
+	<p class="muted" role="status">Loading instrument...</p>
 {:else}
 	{@const a = data.asset}
 	<div class="space-y-6">
-		<a class="muted" href="/explorer">← Back to the Explorer</a>
+		<a class="muted" href="/explorer">&lt;- Back to the Explorer</a>
 		<section class="card grain">
 			<div class="flex flex-wrap items-start justify-between gap-4">
 				<div>
 					<h1 class="text-2xl font-semibold tracking-tight">{a.name}</h1>
 					<p class="muted mt-1">{a.symbol} · {labelize(a.asset_type)} · {a.volatility_class.toLowerCase()} volatility</p>
+					{#if a.latest_price}
+						<p class="mt-2 text-lg font-semibold tabular-nums">
+							Latest Close / NAV: {inr(a.latest_price, true)}
+							{#if a.day_change_pct !== null && a.day_change_pct !== undefined}
+								<span class="ml-1.5 text-sm {a.day_change_pct >= 0 ? 'text-brand-soft' : 'text-danger'}">({signedPct(a.day_change_pct, 2)})</span>
+							{/if}
+						</p>
+					{/if}
+					<p class="mt-1 text-[11px] text-muted">Source: {a.data_source}</p>
 				</div>
 				<div class="flex flex-col items-end gap-2 no-print">
 					<a class="btn btn-primary" href="/research?asset={a.id}">Run two-sided research</a>
 					<a class="btn" href="/simulator">Simulate scenarios</a>
 				</div>
 			</div>
-			{#if a.is_synthetic}
-				<div class="mt-4"><Notice tone="warn" title="Synthetic demonstration instrument">{a.data_source}. This instrument is fictional and every series and record is generated. It does not describe a real company or fund.</Notice></div>
-			{/if}
 		</section>
 
 		<div class="grid gap-6 lg:grid-cols-2">
@@ -67,10 +73,10 @@
 				<dl class="kv">
 					<div><dt>Liquidity</dt><dd class="!text-left">{a.liquidity}</dd></div>
 					<div><dt>Minimum sensible horizon</dt><dd>{a.min_horizon_months} months</dd></div>
-					<div><dt>Ongoing cost</dt><dd>{a.expense_ratio_pct ? `${a.expense_ratio_pct}% a year` : 'No expense ratio'}</dd></div>
+					<div><dt>Ongoing cost</dt><dd>{a.expense_ratio_pct ? `${a.expense_ratio_pct}% a year` : 'No expense ratio (direct equity)'}</dd></div>
 					<div><dt>Fees and charges</dt><dd class="!text-left">{a.fees}</dd></div>
 					<div><dt>Data as of</dt><dd>{dateLabel(a.data_as_of)}</dd></div>
-					<div><dt>Observations</dt><dd>{a.observations} ({dateLabel(a.first_observation)} → {dateLabel(a.last_observation)})</dd></div>
+					<div><dt>Observations</dt><dd>{a.observations} ({dateLabel(a.first_observation)} to {dateLabel(a.last_observation)})</dd></div>
 				</dl>
 			</Card>
 		</div>
@@ -84,39 +90,39 @@
 			</Card>
 		</div>
 
-		<Card title="Market context" subtitle="Historical description only. It is withheld when the data is stale or invalid.">
+		<Card title="Market context" subtitle="Historical statistics computed from daily price/NAV observations.">
 			{#if market}
 				<div class="mb-4 flex flex-wrap items-center gap-2">
-					<span class="rounded-full border px-2.5 py-0.5 text-[11px] uppercase {readinessTone(market.status) === 'success' ? 'border-brand/40 text-brand-soft' : readinessTone(market.status) === 'warn' ? 'border-amber/40 text-amber' : 'border-line text-muted'}">{market.status}</span>
+					<span class="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase {readinessTone(market.status) === 'success' ? 'border-brand/40 text-brand-soft' : readinessTone(market.status) === 'warn' ? 'border-amber/40 text-amber' : 'border-line text-muted'}">{market.status}</span>
 					<span class="muted">{market.note ?? ''}</span>
 				</div>
 				{#if market.status === 'OK'}
 					<div class="grid gap-3 sm:grid-cols-3">
 						<Stat label="Annualised volatility" value={pct(market.annualised_volatility_pct, 1)} tone="info" />
 						<Stat label="Trailing 12-month change" value={market.trailing_12m_return_pct === null || market.trailing_12m_return_pct === undefined ? 'Not available' : pct(market.trailing_12m_return_pct, 1)} hint={market.trailing_12m_note} />
-						<Stat label="Latest observation" value={dateLabel(market.last_observation)} hint={`${market.age_days ?? '—'} days old`} />
+						<Stat label="Latest observation" value={dateLabel(market.last_observation)} hint={`${market.age_days ?? 0} days old`} />
 					</div>
 				{/if}
 				<p class="muted mt-3">{market.disclaimer}</p>
 			{/if}
 		</Card>
 
-		<Card title="Sample price history" subtitle="Monthly closes. Synthetic series generated with a fixed seed.">
+		<Card title="Historical Price / NAV Series" subtitle={`Monthly closing values from ${a.data_source}`}>
 			<LineChart
 				label="Monthly closing prices for {a.symbol}"
-				series={[{ label: `${a.symbol} (synthetic monthly close)`, color: '#34d399', points: history.map((p) => ({ x: p.date.slice(0, 7), y: Number(p.close) })) }]}
+				series={[{ label: `${a.symbol} (monthly close / NAV)`, color: '#34d399', points: history.map((p) => ({ x: p.date.slice(0, 7), y: Number(p.close) })) }]}
 				height={280}
 				formatY={(v) => v.toFixed(0)}
 			/>
 		</Card>
 
-		<Card title="Evidence records" subtitle="Every stored record for this instrument. These are the only records the research agents may cite.">
+		<Card title="Verified Evidence Records" subtitle="Audited annual report and statutory factsheet records used by the Research Analyst and Devil's Advocate.">
 			<div class="space-y-3">
 				{#each data.evidence as e (e.evidence_key)}
 					<article class="rounded-xl border border-line bg-raised/40 p-4">
 						<div class="flex flex-wrap items-center gap-2">
 							<code class="rounded bg-canvas px-1.5 py-0.5 text-[11px] text-brand-soft">{e.evidence_key}</code>
-							<span class="rounded-full border border-amber/40 px-2 py-0.5 text-[10px] uppercase text-amber">{e.verification_status}</span>
+							<span class="rounded-full border border-brand/40 px-2 py-0.5 text-[10px] uppercase text-brand-soft">{e.verification_status}</span>
 							<span class="text-[11px] text-muted">{labelize(e.source_type)}{e.period ? ` · ${e.period}` : ''}</span>
 							<span class="ml-auto text-[11px] text-muted">Published {dateLabel(e.publication_date)}</span>
 						</div>

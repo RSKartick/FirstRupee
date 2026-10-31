@@ -47,7 +47,7 @@ def _money_clock(p: FinancialProfile, readiness: dict[str, Any]) -> dict[str, An
     else:
         status = "OK"
     headlines = {
-        "CRITICAL": "Cash flow is negative — there is no money to invest.",
+        "CRITICAL": "Cash flow is negative - there is no money to invest.",
         "CONSTRAINED": "Money arrives, but there is little slack.",
         "OK": "Monthly cash flow leaves room after commitments.",
     }
@@ -78,7 +78,7 @@ def _goal_clock(p: FinancialProfile, readiness: dict[str, Any], as_of: date) -> 
     surplus = D(m["monthly_surplus"])
     if p.goal_deadline is None:
         status = "UNAVAILABLE"
-        headline = "No goal deadline — the horizon cannot be assessed."
+        headline = "No goal deadline - the horizon cannot be assessed."
     elif horizon is not None and horizon < 0:
         status, headline = "CRITICAL", "The goal deadline has passed; update it before any planning."
     elif horizon is not None and horizon < 12:

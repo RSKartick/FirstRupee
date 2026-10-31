@@ -24,7 +24,7 @@ from app.services.financial_engine.rules import EVALUATOR_VERSION
 FRESHNESS_LIMIT_DAYS = {
     "ANNUAL_REPORT": 600,  # annual cycle plus publication lag
     "FUND_FACTSHEET": 540,
-    "REGULATORY_FILING": 400,
+    "REGULATORY_FILING": 540,
     "SYNTHETIC_DOCUMENT": 900,
 }
 QUALITY_WEIGHT = {"SUPPORTED": 1.0, "SUPPORTED_STALE": 0.5, "SYNTHETIC_DEMONSTRATION": 0.5, "UNVERIFIED": 0.25}

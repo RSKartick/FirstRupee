@@ -62,6 +62,27 @@ def _deterministic(question: str, ctx: dict[str, Any]) -> tuple[str, list[str]]:
                 return f"{text}\n\nFor your profile: readiness is {readiness['status']}.", grounding
             return text, grounding
 
+    if re.search(r"recommend|allocat|where to invest|what to invest|how much|plan|portfolio|beginner|intermediate|experienced", q):
+        if not readiness:
+            return ("Complete your financial assessment first so I can calculate your exact monthly rupee allocation and "
+                    "experience-tailored recommendations."), grounding
+        rec = readiness.get("recommendations") or {}
+        allocs = rec.get("asset_allocations") or []
+        alloc_lines = ", ".join(
+            f"{a['name']} ({a['allocation_pct']}%: {fmt_inr(D(a['monthly_amount_inr']))}/month)"
+            for a in allocs
+        )
+        mp = rec.get("monthly_plan") or {}
+        return (
+            f"{rec.get('headline', readiness['explanation'])}\n\n"
+            f"{rec.get('summary', '')}\n\n"
+            f"Numerical monthly breakdown (from {fmt_inr(D(mp.get('monthly_surplus_inr', '0')))} surplus): "
+            f"Emergency top-up {fmt_inr(D(mp.get('emergency_topup_inr', '0')))}/month, "
+            f"Goal reserve {fmt_inr(D(mp.get('goal_reserve_inr', '0')))}/month, "
+            f"Market deployment {fmt_inr(D(mp.get('recommended_market_deployment_inr', '0')))}/month. "
+            f"Instrument split ({rec.get('tone_label', 'tailored')}): {alloc_lines}."
+        ), grounding
+
     if re.search(r"ready|can i invest|should i invest", q):
         if not readiness:
             return ("I don't have a stored readiness result for you yet. Complete the financial assessment first; I won't estimate "

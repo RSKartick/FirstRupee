@@ -92,11 +92,11 @@
 					: 'warn';
 </script>
 
-<svelte:head><title>Research — FirstRupee</title></svelte:head>
+<svelte:head><title>Research - FirstRupee</title></svelte:head>
 
 {#if !session.activeProfileId}
 	<div class="card space-y-3 text-center">
-		<p class="muted">Research is anchored to your readiness result, so the Devil’s Advocate can comment on your real constraints.</p>
+		<p class="muted">Research is anchored to your readiness result, so the Devil's Advocate can comment on your real constraints.</p>
 		<a class="btn btn-primary" href="/onboarding?new=1">Start the assessment</a>
 	</div>
 {:else}
@@ -105,7 +105,7 @@
 			<p class="text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-soft">AI research assistant</p>
 			<h1 class="mt-2 text-2xl font-semibold tracking-tight">Two analysts, one set of records</h1>
 			<p class="muted mt-2 max-w-3xl">
-				The Research Analyst builds the case from stored evidence. The Devil’s Advocate challenges it from the same records and is not
+				The Research Analyst builds the case from stored evidence. The Devil's Advocate challenges it from the same records and is not
 				allowed to invent negatives for balance. A deterministic evaluator then checks each claim against the stored data. Neither
 				panel produces a buy or sell signal.
 			</p>
@@ -113,18 +113,18 @@
 				<div>
 					<label class="field-label" for="asset">Instrument</label>
 					<select id="asset" class="field-input" bind:value={assetId}>
-						<option value="">Choose an instrument…</option>
+						<option value="">Choose an instrument...</option>
 						{#each assets as a (a.id)}<option value={String(a.id)}>{a.name} · {a.symbol}</option>{/each}
 					</select>
 				</div>
 				<div class="flex items-end">
-					<button class="btn btn-primary w-full" onclick={run} disabled={busy || !assetId}>{busy ? 'Analysing…' : 'Run analysis'}</button>
+					<button class="btn btn-primary w-full" onclick={run} disabled={busy || !assetId}>{busy ? 'Analysing...' : 'Run analysis'}</button>
 				</div>
 			</div>
 			{#if error}<p class="field-error mt-3" role="alert">{error}</p>{/if}
 		</section>
 
-		{#if busy}<p class="muted" role="status">Running the Research Analyst and Devil’s Advocate, then verifying every claim…</p>{/if}
+		{#if busy}<p class="muted" role="status">Running the Research Analyst and Devil's Advocate, then verifying every claim...</p>{/if}
 
 		{#if history.length > 0}
 			<Card title="Earlier analyses for this profile">
@@ -143,14 +143,14 @@
 			<Card title={analysis.asset.name} subtitle={`${analysis.asset.symbol} · analysis #${analysis.analysis_id} · reference date ${dateLabel(analysis.as_of)}`}>
 				<div class="flex flex-wrap items-center gap-3">
 					<StatusBadge status={evaluation.status} />
-					<span class="muted">Analyst: {analysis.engine.analyst_mode === 'LLM' ? `language model (${analysis.engine.provider})` : 'rule-based (no language model configured)'} · Devil’s Advocate: {analysis.engine.devil_mode === 'LLM' ? 'language model' : 'rule-based'}</span>
-					<button class="btn btn-primary ml-auto no-print" onclick={generatePassport} disabled={passportBusy}>{passportBusy ? 'Generating…' : 'Generate Decision Passport'}</button>
+					<span class="muted">Analyst: {analysis.engine.analyst_mode === 'LLM' ? `language model (${analysis.engine.provider})` : 'rule-based (deterministic)'} · Devil's Advocate: {analysis.engine.devil_mode === 'LLM' ? 'language model' : 'rule-based (deterministic)'}</span>
+					<button class="btn btn-primary ml-auto no-print" onclick={generatePassport} disabled={passportBusy}>{passportBusy ? 'Generating...' : 'Generate Decision Passport'}</button>
 				</div>
 				{#if evaluation.data_status.synthetic_evidence_used}
 					<div class="mt-4"><Notice tone="warn" title="Synthetic demonstration evidence">Every record used here is synthetic. The checks demonstrate the process; they are not independent verification of any real company or fund.</Notice></div>
 				{/if}
 				{#if analysis.engine.errors.length > 0}
-					<div class="mt-3"><Notice tone="info" title="Engine notes">{#each analysis.engine.errors as note (note)}<p>{note}</p>{/each}</Notice></div>
+					<div class="mt-3"><Notice tone="info" title="Engine notes">{#each analysis.engine.errors as note, i (i)}<p>{note}</p>{/each}</Notice></div>
 				{/if}
 			</Card>
 
@@ -159,7 +159,7 @@
 					<div class="space-y-4 text-[13px] leading-relaxed">
 						<div><p class="muted text-[11px] uppercase tracking-wider">Overview</p><p class="mt-1">{analysis.analyst.overview}</p></div>
 						{#if analysis.analyst.developments.length > 0}
-							<div><p class="muted text-[11px] uppercase tracking-wider">Developments in the records</p><ul class="mt-1 list-disc space-y-1 pl-5">{#each analysis.analyst.developments as item (item)}<li>{item}</li>{/each}</ul></div>
+							<div><p class="muted text-[11px] uppercase tracking-wider">Developments in the records</p><ul class="mt-1 list-disc space-y-1 pl-5">{#each analysis.analyst.developments as item, i (i)}<li>{item}</li>{/each}</ul></div>
 						{/if}
 						<div class="rounded-xl border border-brand/30 bg-brand/5 p-4">
 							<p class="text-[11px] uppercase tracking-wider text-brand-soft">Investment thesis (conditional)</p>
@@ -168,13 +168,13 @@
 					</div>
 				</Card>
 
-				<Card title="Devil’s Advocate" subtitle="Challenges the thesis. If nothing material is established, it says so.">
+				<Card title="Devil's Advocate" subtitle="Challenges the thesis. If nothing material is established, it says so.">
 					<div class="space-y-4 text-[13px] leading-relaxed">
 						{#if analysis.devil.no_material_negative_finding}
 							<Notice tone="success" title="No material negative finding established">That is not the same as no risk. The missing information below still limits the assessment.</Notice>
 						{/if}
 						<div class="rounded-xl border border-danger/30 bg-danger/5 p-4"><p class="text-[11px] uppercase tracking-wider text-danger">Counter-thesis</p><p class="mt-1.5">{analysis.devil.counter_thesis}</p></div>
-						<div><p class="muted text-[11px] uppercase tracking-wider">Missing information</p><ul class="mt-1 list-disc space-y-1 pl-5 text-muted">{#each analysis.devil.missing_information as item (item)}<li>{item}</li>{/each}</ul></div>
+						<div><p class="muted text-[11px] uppercase tracking-wider">Missing information</p><ul class="mt-1 list-disc space-y-1 pl-5 text-muted">{#each analysis.devil.missing_information as item, i (i)}<li>{item}</li>{/each}</ul></div>
 					</div>
 				</Card>
 			</div>
@@ -196,7 +196,7 @@
 									<td class="muted">{check.side === 'ANALYST' ? 'Analyst' : 'Devil'}</td>
 									<td>{check.claim}</td>
 									<td class="muted">{labelize(check.claim_type)}</td>
-									<td><code class="text-[11px] text-brand-soft">{check.evidence_key ?? '—'}</code></td>
+									<td><code class="text-[11px] text-brand-soft">{check.evidence_key ?? 'n/a'}</code></td>
 									<td><StatusBadge status={check.status} text={labelize(check.status)} /></td>
 									<td class="muted">{check.reasons.join(' ')}</td>
 								</tr>
@@ -222,15 +222,15 @@
 					{/if}
 					{#if evaluation.unconfirmed_concerns.length > 0}
 						<h3 class="mt-5 text-[12px] font-semibold uppercase tracking-wider text-muted">Unconfirmed concerns</h3>
-						<ul class="mt-2 list-disc space-y-1 pl-5 text-[13px] text-muted">{#each evaluation.unconfirmed_concerns as item (item)}<li>{item}</li>{/each}</ul>
+						<ul class="mt-2 list-disc space-y-1 pl-5 text-[13px] text-muted">{#each evaluation.unconfirmed_concerns as item, i (i)}<li>{item}</li>{/each}</ul>
 					{/if}
 				</Card>
 
 				<Card title="Suitability, data gaps and uncertainty">
 					<ul class="list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed">
-						{#each evaluation.suitability_notes as item (item)}<li>{item}</li>{/each}
-						{#each evaluation.missing_data as item (item)}<li class="text-warn">{item}</li>{/each}
-						{#each evaluation.unresolved_uncertainties as item (item)}<li class="muted">{item}</li>{/each}
+						{#each evaluation.suitability_notes as item, i (i)}<li>{item}</li>{/each}
+						{#each evaluation.missing_data as item, i (i)}<li class="text-warn">{item}</li>{/each}
+						{#each evaluation.unresolved_uncertainties as item, i (i)}<li class="muted">{item}</li>{/each}
 					</ul>
 					{#if evaluation.data_status.stale_sources.length > 0}
 						<p class="muted mt-3">Older than its freshness limit: {evaluation.data_status.stale_sources.map((s) => s.evidence_key).join(', ')}.</p>

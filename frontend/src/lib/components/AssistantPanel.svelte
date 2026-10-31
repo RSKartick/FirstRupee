@@ -13,10 +13,10 @@
 	let error = $state('');
 
 	const suggestions = [
+		'Show my recommended portfolio and monthly rupee split',
+		'Am I ready to invest right now?',
 		'What is an expense ratio?',
-		'Am I ready to invest?',
-		'What does maximum drawdown mean?',
-		'What is in my Decision Passport?'
+		'What does maximum drawdown mean?'
 	];
 
 	async function send(text: string) {
@@ -61,7 +61,7 @@
 					<div class="max-w-[85%] whitespace-pre-wrap rounded-xl px-4 py-3 text-[13px] leading-relaxed {entry.role === 'user' ? 'bg-brand/15' : 'border border-line bg-raised/60'}">
 						{entry.content}
 						{#if entry.meta}
-							<p class="mt-2 text-[11px] text-muted">{entry.meta.mode === 'LLM' ? `Language model (${entry.meta.provider})` : 'Deterministic answer — no language model used'}</p>
+							<p class="mt-2 text-[11px] text-muted">{entry.meta.mode === 'LLM' ? `Language model (${entry.meta.provider})` : 'Deterministic answer - no language model used'}</p>
 						{/if}
 					</div>
 				</div>

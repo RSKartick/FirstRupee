@@ -1,4 +1,4 @@
-"""Public instrument catalogue. Every series and document here is synthetic demonstration data, and the responses say so."""
+"""Public instrument catalogue and live market benchmarks."""
 
 from __future__ import annotations
 
@@ -9,11 +9,13 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import database, reference_date
+from app.api.deps import csrf_protected, database, reference_date
 from app.core.errors import NotFoundError, ValidationProblem
+from app.data_sources.demo_catalog import fetch_live_benchmarks
 from app.data_sources.provider import get_provider
 from app.models.tables import Asset, MarketObservation
 from app.repositories import owned as repo
+from app.seed import seed_catalog
 from app.services.financial_engine.market import market_snapshot
 
 router = APIRouter(prefix="/assets", tags=["assets"])
@@ -26,6 +28,16 @@ def _summary(db: Session, asset: Asset) -> dict[str, Any]:
         select(func.count(MarketObservation.id), func.min(MarketObservation.obs_date), func.max(MarketObservation.obs_date))
         .where(MarketObservation.asset_id == asset.id)
     ).one()
+    latest_row = db.execute(
+        select(MarketObservation.close, MarketObservation.obs_date)
+        .where(MarketObservation.asset_id == asset.id)
+        .order_by(MarketObservation.obs_date.desc())
+        .limit(2)
+    ).all()
+    latest_price = f"{latest_row[0].close:.2f}" if latest_row else None
+    day_change_pct = None
+    if len(latest_row) >= 2 and float(latest_row[1].close) > 0:
+        day_change_pct = round((float(latest_row[0].close) / float(latest_row[1].close) - 1.0) * 100.0, 2)
     return {
         "id": asset.id,
         "symbol": asset.symbol,
@@ -41,6 +53,27 @@ def _summary(db: Session, asset: Asset) -> dict[str, Any]:
         "observations": stats[0],
         "first_observation": stats[1].isoformat() if stats[1] else None,
         "last_observation": stats[2].isoformat() if stats[2] else None,
+        "latest_price": latest_price,
+        "day_change_pct": day_change_pct,
+    }
+
+
+@router.get("/benchmarks")
+def list_benchmarks() -> dict[str, Any]:
+    return {
+        "benchmarks": fetch_live_benchmarks(),
+        "provider": get_provider().id,
+    }
+
+
+@router.post("/refresh", dependencies=[Depends(csrf_protected)])
+def refresh_catalog(db: Session = Depends(database)) -> dict[str, Any]:
+    seed_catalog(db, force_refresh=True)
+    assets = db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all()
+    return {
+        "refreshed": True,
+        "assets": [_summary(db, asset) for asset in assets],
+        "provider": get_provider().id,
     }
 
 
@@ -61,8 +94,12 @@ def list_assets(
         if max_min_horizon_months and asset.min_horizon_months > max_min_horizon_months:
             continue
         items.append(_summary(db, asset))
-    return {"assets": items, "provider": get_provider().id,
-            "note": "Every instrument, price series and document in this catalogue is fictional or synthetic demonstration data."}
+    provider = get_provider()
+    return {
+        "assets": items,
+        "provider": provider.id,
+        "note": provider.attribution,
+    }
 
 
 @router.get("/{asset_id}")

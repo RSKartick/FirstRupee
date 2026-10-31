@@ -16,11 +16,11 @@
 		{ value: 'COMPARISON', label: 'D · Compare two', hint: 'The same capital and dates in two instruments. Both must have full history.' }
 	];
 	const PATHS = [
-		{ value: 'HISTORICAL', label: 'Recorded sample prices (synthetic)' },
-		{ value: 'ZERO_RETURN', label: 'Hypothetical — price never changes' },
-		{ value: 'HYPOTHETICAL_UP', label: 'Hypothetical — steady 1% a month rise' },
-		{ value: 'HYPOTHETICAL_DOWN', label: 'Hypothetical — steady 1.5% a month fall' },
-		{ value: 'SEEDED_GBM', label: 'Hypothetical — seeded random path (illustrative)' }
+		{ value: 'HISTORICAL', label: 'Real historical prices / NAVs (NSE & AMFI)' },
+		{ value: 'ZERO_RETURN', label: 'Hypothetical - price never changes' },
+		{ value: 'HYPOTHETICAL_UP', label: 'Hypothetical - steady 1% a month rise' },
+		{ value: 'HYPOTHETICAL_DOWN', label: 'Hypothetical - steady 1.5% a month fall' },
+		{ value: 'SEEDED_GBM', label: 'Hypothetical - seeded random path (illustrative)' }
 	];
 
 	let assets = $state<AssetSummary[]>([]);
@@ -135,7 +135,7 @@
 	const scenarioHint = $derived(SCENARIOS.find((s) => s.value === scenario)?.hint ?? '');
 </script>
 
-<svelte:head><title>Simulator — FirstRupee</title></svelte:head>
+<svelte:head><title>Simulator - FirstRupee</title></svelte:head>
 
 <div class="space-y-6">
 	<section class="card grain">
@@ -252,7 +252,7 @@
 	{#if busy}<p class="muted" role="status">Computing the scenario on the backend…</p>{/if}
 
 	{#if result && primary}
-		<Notice tone={result.financially_available ? 'success' : 'warn'} title={result.financially_available ? 'Based on amounts from your profile' : 'Hypothetical — not financially available to you'}>
+		<Notice tone={result.financially_available ? 'success' : 'warn'} title={result.financially_available ? 'Based on amounts from your profile' : 'Hypothetical - not financially available to you'}>
 			{result.financially_available
 				? 'These amounts come from your readiness result. Investing them would still carry the risks shown below.'
 				: 'These are amounts you typed for education. They do not reflect money you have available, and they are not forecasts.'}

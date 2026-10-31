@@ -16,6 +16,27 @@ PASSPORT_DISCLAIMER = (
 )
 
 
+def _dedupe_strs(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in items:
+        if item and item not in seen:
+            seen.add(item)
+            out.append(item)
+    return out
+
+
+def _dedupe_conditions(items: list[dict[str, str]]) -> list[dict[str, str]]:
+    seen: set[tuple[str, str, str]] = set()
+    out: list[dict[str, str]] = []
+    for item in items:
+        key = (item.get("condition", ""), item.get("trigger", ""), item.get("severity", ""))
+        if key not in seen:
+            seen.add(key)
+            out.append(item)
+    return out
+
+
 def _review_conditions(readiness: dict[str, Any], research: dict[str, Any] | None) -> tuple[list[dict[str, str]], list[str]]:
     conditions: list[dict[str, str]] = []
     depends: list[str] = []
@@ -44,7 +65,7 @@ def _review_conditions(readiness: dict[str, Any], research: dict[str, Any] | Non
                            "trigger": "Change to goal date or liquidity setting.", "severity": "CONSTRAINT"})
     conditions.append({"condition": f"Readiness changes from {readiness['status']} under a new rule set or new inputs.",
                        "trigger": "Re-run readiness after any material change.", "severity": "CONSTRAINT"})
-    return conditions, depends
+    return _dedupe_conditions(conditions), _dedupe_strs(depends)
 
 
 def compose(
@@ -70,7 +91,7 @@ def compose(
                     "verification_status": record["verification_status"],
                     "publication_date": record["publication_date"],
                     "period": record["period"],
-                    "claims": [c["claim"] for c in research["evaluation"]["claim_checks"] if c.get("evidence_key") == record["evidence_key"]],
+                    "claims": _dedupe_strs([c["claim"] for c in research["evaluation"]["claim_checks"] if c.get("evidence_key") == record["evidence_key"]]),
                 })
 
     stale = research["evaluation"]["data_status"]["stale_sources"] if research else []
@@ -81,6 +102,7 @@ def compose(
         missing += [item for item in simulation["limitations"] if "excluded" in item.lower() or "not" in item.lower()]
     if simulation_skipped_reason:
         missing.append(simulation_skipped_reason)
+    missing = _dedupe_strs(missing)
 
     assumptions = [
         f"Reference date for every calculation: {as_of.isoformat()}. Readiness and timing were computed with this date.",
@@ -96,6 +118,7 @@ def compose(
         )
     if simulation:
         assumptions += simulation["assumptions"]
+    assumptions = _dedupe_strs(assumptions)
 
     synthetic_used = bool(research and research["evaluation"]["data_status"]["synthetic_evidence_used"]) or bool(
         simulation and simulation["data_period"]["is_synthetic"]
@@ -121,7 +144,7 @@ def compose(
         },
         "investor_profile": profile,
         "objective": (
-            f"{profile['goal_name']} — target {profile['goal_amount']}" if profile.get("goal_name") and profile.get("goal_amount")
+            f"{profile['goal_name']} - target {profile['goal_amount']}" if profile.get("goal_name") and profile.get("goal_amount")
             else (profile["goal_name"] or "No goal recorded")
         ),
         "horizon": {
@@ -129,6 +152,7 @@ def compose(
             "basis": readiness["metrics"]["horizon_basis"],
         },
         "readiness": readiness,
+        "recommendations": readiness.get("recommendations"),
         "timing": timing,
         "research": None if research is None else {
             "analysis_id": research.get("analysis_id"),

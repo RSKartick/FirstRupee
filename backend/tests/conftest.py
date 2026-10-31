@@ -11,6 +11,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_TMP}/test.db"
 os.environ["LLM_PROVIDER"] = "none"
 os.environ["LLM_API_KEY"] = ""
 os.environ["COOKIE_SECURE"] = "false"
+os.environ["FIRSTRUPEE_OFFLINE_SEED"] = "1"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

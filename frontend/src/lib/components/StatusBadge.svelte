@@ -13,6 +13,6 @@
 	const tone = $derived(readinessTone(status));
 </script>
 
-<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-wide uppercase {classes[tone]}">
+<span class="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-wide uppercase {classes[tone]}">
 	{text || labelize(status)}
 </span>

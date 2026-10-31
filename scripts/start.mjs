@@ -5,10 +5,51 @@
  *   - SvelteKit Node server on PORT (default 3000). It serves the app and proxies /api/* to the backend.
  * Only PORT is exposed to users; the backend is reached through the proxy.
  */
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+function freePort(port) {
+	try {
+		if (process.platform === 'win32') {
+			const out = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+			const pids = new Set();
+			for (const line of out.split(/\r?\n/)) {
+				if (!line.includes('LISTENING')) continue;
+				const parts = line.trim().split(/\s+/);
+				const pid = parts[parts.length - 1];
+				if (pid && /^\d+$/.test(pid) && Number(pid) !== process.pid && Number(pid) > 0) {
+					pids.add(pid);
+				}
+			}
+			for (const pid of pids) {
+				try {
+					execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+				} catch {
+					// Ignore if process already exited
+				}
+			}
+		} else {
+			try {
+				execSync(`fuser -k ${port}/tcp`, { stdio: 'ignore' });
+			} catch {
+				const out = execSync(`lsof -ti tcp:${port}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+				for (const pid of out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)) {
+					if (Number(pid) !== process.pid) {
+						try {
+							process.kill(Number(pid), 'SIGKILL');
+						} catch {
+							// Ignore
+						}
+					}
+				}
+			}
+		}
+	} catch {
+		// Port is already free
+	}
+}
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const backendDir = path.join(root, 'backend');
@@ -44,6 +85,9 @@ if (!existsSync(buildEntry)) {
 
 const backendPort = process.env.BACKEND_PORT ?? '8000';
 const frontendPort = process.env.PORT ?? '3000';
+
+freePort(backendPort);
+freePort(frontendPort);
 
 const backend = spawn(
 	python,

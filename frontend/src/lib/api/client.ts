@@ -3,6 +3,7 @@ import type {
 	AssetSummary,
 	ChatResponse,
 	HistoryPoint,
+	MarketBenchmark,
 	Passport,
 	PassportSummary,
 	ProfileOut,
@@ -110,7 +111,7 @@ export const api = {
 	login: (payload: { email: string; password: string }) =>
 		request<{ user: SessionUser; csrf_token: string }>('POST', '/auth/login', payload),
 	logout: () => request<{ logged_out: boolean }>('POST', '/auth/logout'),
-	loadDemo: (key: 'rahul' | 'priya') =>
+	loadDemo: (key: 'rahul' | 'priya' | 'arjun') =>
 		request<{ user: SessionUser; csrf_token: string; profile_id: number }>('POST', `/auth/demo/${key}`),
 
 	listProfiles: () => request<{ profiles: ProfileSummary[] }>('GET', '/profile'),
@@ -124,6 +125,8 @@ export const api = {
 
 	assets: (filters: { asset_type?: string; max_volatility?: string; max_min_horizon_months?: number } = {}) =>
 		request<{ assets: AssetSummary[]; note: string }>('GET', `/assets${query(filters)}`),
+	benchmarks: () => request<{ benchmarks: MarketBenchmark[]; provider: string }>('GET', '/assets/benchmarks'),
+	refreshAssets: () => request<{ refreshed: boolean; assets: AssetSummary[]; provider: string }>('POST', '/assets/refresh'),
 	asset: (id: number) => request<AssetPage>('GET', `/assets/${id}`),
 	history: (id: number, from?: string, to?: string) =>
 		request<{ points: HistoryPoint[]; source: string; is_synthetic: boolean }>(
