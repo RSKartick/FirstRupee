@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api, ApiError } from '$lib/api/client';
-	import type { AssetSummary, MarketBenchmark, ProfileOut, Readiness } from '$lib/api/types';
+import { isCurrentDashboardLoad, loadDashboardCore } from '$lib/dashboard/load';
+import type { AssetKey, MarketBenchmark, ProfileOut, Readiness } from '$lib/api/types';
 	import { loadProfiles, session } from '$lib/stores/session.svelte';
 	import { dateLabel, inr, labelize, months, pct, signedPct } from '$lib/format';
 	import Card from '$lib/components/Card.svelte';
@@ -11,12 +12,14 @@
 
 	let profile = $state<ProfileOut | null>(null);
 	let readiness = $state<Readiness | null>(null);
-	let catalogue = $state<AssetSummary[]>([]);
+	let catalogue = $state<AssetKey[]>([]);
 	let benchmarks = $state<MarketBenchmark[]>([]);
 	let loading = $state(false);
+	let benchmarkLoading = $state(false);
 	let switchingExp = $state(false);
 	let error = $state('');
 	let confirming = $state(false);
+	let loadToken = 0;
 
 	$effect(() => {
 		const id = session.activeProfileId;
@@ -24,26 +27,42 @@
 	});
 
 	async function load(id: number | null) {
+		const token = ++loadToken;
 		profile = null;
 		readiness = null;
+		catalogue = [];
+		benchmarks = [];
 		error = '';
+		loading = false;
+		benchmarkLoading = false;
 		if (!id) return;
 		loading = true;
+		benchmarkLoading = true;
+		void loadBenchmarks(id, token);
 		try {
-			const [p, r, cat, bm] = await Promise.all([
-				api.getProfile(id),
-				api.readiness(id),
-				api.assets(),
-				api.benchmarks().catch(() => ({ benchmarks: [], provider: '' }))
-			]);
+			const [p, r, cat] = await loadDashboardCore(id, api);
+			if (!isCurrentDashboardLoad(token, loadToken, id, session.activeProfileId)) return;
 			profile = p.profile;
 			readiness = r.readiness;
 			catalogue = cat.assets;
-			benchmarks = bm.benchmarks;
 		} catch (err) {
+			if (!isCurrentDashboardLoad(token, loadToken, id, session.activeProfileId)) return;
 			error = err instanceof ApiError ? err.message : 'Your profile could not be loaded.';
 		} finally {
-			loading = false;
+			if (isCurrentDashboardLoad(token, loadToken, id, session.activeProfileId)) loading = false;
+		}
+	}
+
+	async function loadBenchmarks(id: number, token: number) {
+		try {
+			const result = await api.benchmarks();
+			if (!isCurrentDashboardLoad(token, loadToken, id, session.activeProfileId)) return;
+			benchmarks = result.benchmarks;
+		} catch {
+			if (!isCurrentDashboardLoad(token, loadToken, id, session.activeProfileId)) return;
+			benchmarks = [];
+		} finally {
+			if (isCurrentDashboardLoad(token, loadToken, id, session.activeProfileId)) benchmarkLoading = false;
 		}
 	}
 
@@ -132,7 +151,9 @@
 	<Notice tone="danger" title="Something went wrong">{error}</Notice>
 {:else if profile && readiness}
 	<div class="space-y-6">
-		{#if benchmarks.length > 0}
+		{#if benchmarkLoading}
+			<section class="rounded-xl border border-line bg-raised/40 px-4 py-3" role="status">Loading market benchmarks…</section>
+		{:else if benchmarks.length > 0}
 			<section class="rounded-xl border border-line bg-raised/40 px-4 py-3">
 				<div class="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-2">
 					<span class="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-soft">Live Indian Market Benchmarks (NSE / BSE / AMFI)</span>
@@ -152,6 +173,10 @@
 						</div>
 					{/each}
 				</div>
+			</section>
+		{:else}
+			<section class="rounded-xl border border-line bg-raised/40 px-4 py-3 text-sm text-muted" role="status">
+				Market benchmarks are temporarily unavailable.
 			</section>
 		{/if}
 

@@ -44,7 +44,7 @@ def rahul(client: httpx.Client) -> None:
     expect(timing["verdict_code"] == "RESERVE_FIRST", "three clocks: reserves come first")
 
     refused = client.post("/api/simulator/run", json={
-        "profile_id": pid, "asset_id": asset_id(client, "SYN-IDX-BROAD50"), "scenario_type": "STAGED_INITIAL",
+        "profile_id": pid, "asset_id": asset_id(client, "UTI-NIFTY50"), "scenario_type": "STAGED_INITIAL",
         "amount_source": "PROFILE_DERIVED", "duration_months": 24,
     }, headers=csrf(client))
     expect(refused.status_code == 422, "no profile-based simulation is run for a NOT_READY profile")
@@ -65,16 +65,16 @@ def priya(client: httpx.Client) -> None:
     expect(readiness["metrics"]["monthly_surplus"] == "40000.00", "monthly surplus is ₹40,000.00")
     expect(readiness["metrics"]["investable_monthly"] == "19416.67", "investable monthly after goal need is ₹19,416.67")
 
-    meridian = asset_id(client, "SYN-EQ-MERIDIAN")
-    research = client.post("/api/research/analyze", json={"profile_id": pid, "asset_id": meridian}, headers=csrf(client))
+    tcs = asset_id(client, "TCS.NS")
+    research = client.post("/api/research/analyze", json={"profile_id": pid, "asset_id": tcs}, headers=csrf(client))
     expect(research.status_code == 201, "two-sided research analysis completed")
     analysis = research.json()["analysis"]
     checks = analysis["evaluation"]["claim_checks"]
     expect(all(c["status"] != "UNSUPPORTED" for c in checks if c["claim_type"] == "FACT"), "every factual claim has evidence")
-    expect(analysis["evaluation"]["data_status"]["synthetic_evidence_used"] is True, "synthetic evidence is labelled")
+    expect(analysis["evaluation"]["data_status"]["synthetic_evidence_used"] is False, "verified evidence is used")
 
     simulation = client.post("/api/simulator/run", json={
-        "profile_id": pid, "asset_id": meridian, "scenario_type": "STAGED_INITIAL", "amount_source": "PROFILE_DERIVED",
+        "profile_id": pid, "asset_id": tcs, "scenario_type": "STAGED_INITIAL", "amount_source": "PROFILE_DERIVED",
         "duration_months": 36,
     }, headers=csrf(client))
     expect(simulation.status_code == 201, "simulation uses the designated ₹15,000 per month")
@@ -85,7 +85,7 @@ def priya(client: httpx.Client) -> None:
     }, headers=csrf(client))
     expect(passport.status_code == 201, "passport generated from matching research and simulation")
     snap = passport.json()["passport"]
-    expect(snap["research"]["asset"]["symbol"] == "SYN-EQ-MERIDIAN", "passport research matches the analysed instrument")
+    expect(snap["research"]["asset"]["symbol"] == "TCS.NS", "passport research matches the analysed instrument")
     expect(snap["simulation"]["simulation_id"] == sim["simulation_id"], "passport simulation matches the run")
     fetched = client.get(f"/api/passport/{snap['passport_id']}").json()["passport"]
     expect(fetched == snap, "stored passport is returned unchanged")

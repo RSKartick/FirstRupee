@@ -177,6 +177,8 @@ export interface AssetSummary {
 	day_change_pct?: number | null;
 }
 
+export type AssetKey = Pick<AssetSummary, 'id' | 'symbol'>;
+
 export interface AssetDetail extends AssetSummary {
 	what_it_is: string;
 	how_it_works: string;

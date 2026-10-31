@@ -34,33 +34,42 @@ def seed_catalog(db: Session, *, force_refresh: bool = False) -> bool:
             db.add(asset)
             changed = True
 
+        has_live_rows = False
+        if not is_new_asset:
+            has_live_rows = db.scalar(
+                select(MarketObservation.id).where(
+                    MarketObservation.asset_id == asset.id, MarketObservation.data_type == "LIVE"
+                ).limit(1)
+            ) is not None
+
         for field in (
             "name", "asset_type", "description", "what_it_is", "how_it_works", "advantages", "risks",
             "liquidity", "min_horizon_months", "fees", "expense_ratio_pct", "volatility_class",
         ):
             setattr(asset, field, defn[field])
         asset.is_synthetic = False
-        if is_new_asset or force_refresh:
+        if is_new_asset or (force_refresh and (is_live_fetched or not has_live_rows)):
             asset.data_source = source_label
             asset.data_as_of = last_obs_date
             changed = True
         db.flush()
 
         obs_data_type = "LIVE" if is_live_fetched else "SAMPLE"
-        has_live_rows = db.scalar(
-            select(MarketObservation.id).where(
-                MarketObservation.asset_id == asset.id, MarketObservation.data_type == "LIVE"
-            ).limit(1)
-        ) is not None
-        if force_refresh and observations and (is_live_fetched or not has_live_rows):
+        if has_live_rows and not is_live_fetched:
+            logger.warning("Skipping fallback observations for %s because LIVE history is already stored.", defn["symbol"])
+            existing_dates = set(db.scalars(
+                select(MarketObservation.obs_date).where(MarketObservation.asset_id == asset.id)
+            ))
+            missing_observations = []
+        elif force_refresh and observations:
             db.execute(delete(MarketObservation).where(MarketObservation.asset_id == asset.id))
             existing_dates: set = set()
+            missing_observations = list(observations)
         else:
             existing_dates = set(db.scalars(
                 select(MarketObservation.obs_date).where(MarketObservation.asset_id == asset.id)
             ))
-
-        missing_observations = [(d, price) for d, price in observations if d not in existing_dates]
+            missing_observations = [(d, price) for d, price in observations if d not in existing_dates]
         if missing_observations:
             db.execute(
                 insert(MarketObservation),

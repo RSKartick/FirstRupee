@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -97,9 +97,14 @@ def _summary(db: Session, asset: Asset) -> dict[str, Any]:
 
 
 @router.get("/benchmarks")
-def list_benchmarks() -> dict[str, Any]:
+def list_benchmarks(response: Response) -> dict[str, Any]:
+    benchmarks = fetch_live_benchmarks(timeout=2.0)
+    if benchmarks and all(quote.get("is_live") is True for quote in benchmarks):
+        response.headers["Cache-Control"] = "public, s-maxage=60, stale-while-revalidate=240"
+    else:
+        response.headers["Cache-Control"] = "public, s-maxage=15"
     return {
-        "benchmarks": fetch_live_benchmarks(),
+        "benchmarks": benchmarks,
         "provider": get_provider().id,
     }
 
@@ -120,6 +125,7 @@ def list_assets(
     asset_type: Literal["EQUITY", "INDEX_FUND", "MUTUAL_FUND", "ETF", "FIXED_INCOME", "GOLD"] | None = None,
     max_volatility: Literal["LOW", "MODERATE", "HIGH"] | None = None,
     max_min_horizon_months: int | None = Query(default=None, ge=1, le=240),
+    fields: Literal["id,symbol"] | None = Query(default=None),
     db: Session = Depends(database),
 ) -> dict[str, Any]:
     assets = list(db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all())
@@ -133,6 +139,12 @@ def list_assets(
             continue
         filtered.append(asset)
     provider = get_provider()
+    if fields == "id,symbol":
+        return {
+            "assets": [{"id": asset.id, "symbol": asset.symbol} for asset in filtered],
+            "provider": provider.id,
+            "note": provider.attribution,
+        }
     return {
         "assets": _summaries(db, filtered),
         "provider": provider.id,

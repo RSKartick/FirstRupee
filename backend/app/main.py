@@ -7,6 +7,7 @@ Errors: domain errors map to 4xx with a user-safe message; unexpected errors are
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -20,7 +21,7 @@ from app import __version__
 from app.api.routes import analysis, auth, catalog, profile
 from app.core.config import get_settings
 from app.core.errors import DomainError
-from app.db.migrate import database_startup_lock, run_migrations
+from app.db.migrate import database_startup_lock, run_migrations, schema_is_at_head
 from app.db.session import SessionLocal
 from app.data_sources.provider import get_provider
 from app.seed import seed_catalog
@@ -41,8 +42,13 @@ logger = logging.getLogger("firstrupee")
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     with database_startup_lock():
         run_migrations()
-        with SessionLocal() as session:
-            seed_catalog(session)
+        if not schema_is_at_head():
+            logger.warning("Database schema is not at the current Alembic head; startup seeding is skipped.")
+        elif os.getenv("SEED_ON_STARTUP") == "1":
+            with SessionLocal() as session:
+                seed_catalog(session)
+        else:
+            logger.info("Startup market-data seeding is disabled (set SEED_ON_STARTUP=1 to enable).")
     logger.info("FirstRupee API ready (schema at head, market catalogue present).")
     yield
 
