@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -15,8 +16,10 @@ BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
 
 def resolve_database_url(url: str) -> str:
-    """Relative SQLite paths are anchored to the backend directory so the working directory never matters."""
+    """Normalize PostgreSQL provider URLs and anchor relative SQLite paths to the backend directory."""
     parsed = make_url(url)
+    if parsed.drivername in {"postgres", "postgresql"}:
+        parsed = parsed.set(drivername="postgresql+psycopg")
     if parsed.get_backend_name() == "sqlite":
         database = parsed.database or ""
         if database and database != ":memory:" and not Path(database).is_absolute():
@@ -27,7 +30,9 @@ def resolve_database_url(url: str) -> str:
 
 
 def build_engine(url: str | None = None) -> Engine:
-    resolved = resolve_database_url(url or get_settings().database_url)
+    settings = get_settings()
+    # Use the provider's pooler for request traffic when available. Alembic uses DATABASE_URL directly.
+    resolved = resolve_database_url(url or os.getenv("DATABASE_URL_POOLED") or settings.database_url)
     is_sqlite = resolved.startswith("sqlite")
     engine = create_engine(
         resolved,

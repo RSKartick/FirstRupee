@@ -10,6 +10,8 @@ backend/.env.*
 # Node and SvelteKit
 node_modules/
 frontend/node_modules/
+.vercel/
+**/.vercel/
 build/
 dist/
 frontend/build/

@@ -39,6 +39,13 @@ docker-compose.yml  two-service deployment (written; see the status note below)
 
 Requirements: Node.js 20+ (22 recommended), Python 3.11+ with `venv`, and optionally Docker.
 
+## Vercel deployment
+
+The root `vercel.toml` deploys the SvelteKit web app and FastAPI API as one Vercel project. The project is connected to
+GitHub; pushes to `main` deploy production and other branches create previews. Prisma Postgres is the persistent
+database. `DATABASE_URL` is used for migrations and `DATABASE_URL_POOLED` for request traffic. Registration saves each
+account in PostgreSQL, while passwords are stored as Argon2id hashes.
+
 ### Linux and macOS
 
 ```bash

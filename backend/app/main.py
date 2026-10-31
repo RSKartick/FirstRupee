@@ -20,7 +20,7 @@ from app import __version__
 from app.api.routes import analysis, auth, catalog, profile
 from app.core.config import get_settings
 from app.core.errors import DomainError
-from app.db.migrate import run_migrations
+from app.db.migrate import database_startup_lock, run_migrations
 from app.db.session import SessionLocal
 from app.data_sources.provider import get_provider
 from app.seed import seed_catalog
@@ -39,9 +39,10 @@ logger = logging.getLogger("firstrupee")
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    run_migrations()
-    with SessionLocal() as session:
-        seed_catalog(session)
+    with database_startup_lock():
+        run_migrations()
+        with SessionLocal() as session:
+            seed_catalog(session)
     logger.info("FirstRupee API ready (schema at head, synthetic catalogue present).")
     yield
 
