@@ -39,42 +39,92 @@ docker-compose.yml  two-service deployment (written; see the status note below)
 
 Requirements: Node.js 20+ (22 recommended), Python 3.11+ with `venv`, and optionally Docker.
 
+### Linux and macOS
+
 ```bash
+# Ensure you are inside the cloned repository root:
+cd FirstRupee
+
 # 1. Frontend dependencies
 npm --prefix frontend ci
 
-# 2. Backend virtual environment and pinned dependencies
-#    Debian/Ubuntu: sudo apt install python3.11-venv   (venv needs ensurepip)
+# 2. Backend virtual environment and dependencies
 cd backend
 python3 -m venv .venv
-.venv/bin/pip install -r requirements-dev.txt        # exact pins also in requirements.lock.txt
+.venv/bin/pip install -r requirements.txt
 cd ..
 
-# 3. Optional configuration (the demo needs none)
-cp .env.example backend/.env
-
-# 4. Automated tests
-npm --prefix frontend run test          # Vitest unit tests
-(cd backend && .venv/bin/python -m pytest -q)
-
-# 5. Type check and production build
-npm run check
+# 3. Build frontend
 npm run build
 
-# 6. Run the production stack on http://localhost:3000
+# 4. Start the stack on http://localhost:3000
 npm run start
 ```
 
-Development mode (two terminals):
+### Windows (PowerShell)
 
+Make sure you run PowerShell as a regular user and navigate inside the cloned repository directory:
+
+```powershell
+# 1. Ensure you are inside the FirstRupee directory, NOT the parent folder:
+cd FirstRupee
+
+# Verify package.json exists in your current folder:
+Get-ChildItem package.json
+
+# 2. Install frontend dependencies:
+npm --prefix frontend ci
+
+# 3. Create backend virtual environment and install dependencies:
+cd backend
+python -m venv .venv
+
+# If script execution is restricted in PowerShell, permit the session:
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cd ..
+
+# 4. Build the frontend:
+npm run build
+
+# 5. Start the full application stack on http://localhost:3000:
+npm run start
+```
+
+#### Windows Troubleshooting
+
+- **npm error ENOENT (Could not read package.json)**:
+  This error happens if PowerShell is open in the parent folder (for example `C:\Users\...\Desktop\graviton`) instead of the project directory. Use `dir` or `ls` to find the `FirstRupee` folder, then run `cd FirstRupee` before executing npm commands.
+- **Python script execution blocked**:
+  If PowerShell says running scripts is disabled on this system when running `Activate.ps1`, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in the current terminal window.
+- **Python command not found**:
+  Ensure Python was installed with the "Add python.exe to PATH" checkbox checked.
+
+### Development mode (two terminals)
+
+Terminal 1 (Backend):
 ```bash
-(cd backend && .venv/bin/python -m uvicorn app.main:app --reload --port 8000)
-BACKEND_URL=http://127.0.0.1:8000 npm --prefix frontend run dev    # http://localhost:5173
+# Linux/macOS:
+cd backend && .venv/bin/python -m uvicorn app.main:app --reload --port 8000
+
+# Windows:
+cd backend; .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000
+```
+
+Terminal 2 (Frontend):
+```bash
+# Linux/macOS:
+BACKEND_URL=http://127.0.0.1:8000 npm --prefix frontend run dev
+
+# Windows PowerShell:
+$env:BACKEND_URL="http://127.0.0.1:8000"; npm --prefix frontend run dev
 ```
 
 ### Database
 
-Migrations run automatically when the API starts (`app/main.py` lifespan → `app/db/migrate.py` → Alembic `upgrade head`). They
+Migrations run automatically when the API starts (`app/main.py` lifespan -> `app/db/migrate.py` -> Alembic `upgrade head`). They
 can also be run explicitly:
 
 ```bash
@@ -122,7 +172,7 @@ Each engine has a rule-set version that is stored with every result:
 | Engine | Version | Purpose |
 | --- | --- | --- |
 | Readiness | `readiness-rules-v2.0` | NOT_READY / PREPARATION / READY_TO_EXPLORE with reasons, inputs and next steps |
-| Timing | `timing-rules-v2.0` | Three clocks and an explicit precedence list (R1–R9) |
+| Timing | `timing-rules-v2.0` | Three clocks and an explicit precedence list (R1-R9) |
 | Simulator | `simulator-v2.0` | Historical and hypothetical scenarios, cash-flow-neutral metrics |
 | Evaluator | `evaluator-rules-v2.0` | Claim-by-claim verification and deterministic material-risk rules |
 | Prompts | `prompts-v2.0` | Analyst, devil's advocate and assistant prompts |
@@ -133,9 +183,9 @@ not universal financial rules or regulatory compliance.
 
 Key definitions used throughout:
 
-- **Monthly surplus** = income − essential expenses − non-essential expenses − EMIs − other commitments.
-- **Emergency coverage** = liquid emergency reserve ÷ essential expenses. Unknown when essentials are zero. Unknown is never treated as adequate.
-- **Investable monthly money** = surplus − monthly goal need − emergency replenishment (gap to 6 months ÷ 12). Never negative.
+- **Monthly surplus** = income - essential expenses - non-essential expenses - EMIs - other commitments.
+- **Emergency coverage** = liquid emergency reserve / essential expenses. Unknown when essentials are zero. Unknown is never treated as adequate.
+- **Investable monthly money** = surplus - monthly goal need - emergency replenishment (gap to 6 months / 12). Never negative.
 - **Time-weighted return** = the cash-flow-neutral return of the strategy (unitised NAV). **Money-weighted return** = XIRR on your dated flows.
   Contributions are never presented as gains.
 
