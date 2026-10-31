@@ -15,10 +15,10 @@
 	let scrollContainer: HTMLDivElement | undefined = $state();
 
 	const suggestions = [
-		'Summarize my initial financial profile and readiness',
-		'Show my recommended portfolio and monthly rupee split',
-		'Am I ready to invest right now?',
-		'Explain my loans, EMIs, and emergency reserve status'
+		'How do index funds compare to picking individual stocks?',
+		'Explain LTCG and STCG tax rules on stocks and mutual funds in India',
+		'What should I check before analysing a company on NSE?',
+		'Am I ready to invest right now and how should I split my monthly SIP?'
 	];
 
 	$effect(() => {
@@ -91,8 +91,8 @@
 	<div class="flex h-full w-full max-w-xl flex-col border-l border-line bg-canvas">
 		<div class="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
 			<div>
-				<p class="text-sm font-semibold">FirstRupee Financial Assistant</p>
-				<p class="muted mt-0.5">Grounded in your full initial profile, readiness, and portfolio plan. Persistent across your account sessions. Answers financial questions only.</p>
+				<p class="text-sm font-semibold">FirstRupee AI Chatbot</p>
+				<p class="muted mt-0.5">Ask about finance, stocks, mutual funds, taxes, market concepts, basic questions, or your personal portfolio.</p>
 			</div>
 			<div class="flex shrink-0 items-center gap-1.5">
 				{#if entries.length > 0}
@@ -136,7 +136,7 @@
 			}}
 		>
 			<label class="sr-only" for="assistant-input">Ask the assistant</label>
-			<input id="assistant-input" class="field-input" bind:value={draft} placeholder="Ask a financial question or about your profile..." maxlength="2000" />
+			<input id="assistant-input" class="field-input" bind:value={draft} placeholder="Ask anything about finance, markets, or a general question..." maxlength="2000" />
 			<button class="btn btn-primary" type="submit" disabled={busy || draft.trim() === ''}><Send size={16} />Send</button>
 		</form>
 	</div>

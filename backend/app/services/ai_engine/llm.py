@@ -42,9 +42,11 @@ def extract_json_object(text: str) -> Any:
     return json.loads(text[start : end + 1])
 
 
-def _call_gemini(settings: Any, api_key: str, system: str, user: str) -> tuple[httpx.Response | None, LLMResult | None, str]:
-    raw_model = (settings.llm_model or "gemini-3.8-flash").strip()
-    model = raw_model if raw_model.startswith("gemini-") else "gemini-3.8-flash"
+def _call_gemini(
+    settings: Any, api_key: str, system: str, user: str, *, temperature: float = 0.2
+) -> tuple[httpx.Response | None, LLMResult | None, str]:
+    raw_model = (settings.llm_model or "gemini-3.5-flash-lite").strip()
+    model = raw_model if raw_model.startswith("gemini-") else "gemini-3.5-flash-lite"
     base = settings.llm_base_url.rstrip("/")
     if "openai.com" in base:
         base = "https://generativelanguage.googleapis.com/v1beta"
@@ -61,12 +63,12 @@ def _call_gemini(settings: Any, api_key: str, system: str, user: str) -> tuple[h
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": [{"text": user}]}],
         "generationConfig": {
-            "temperature": 0.2,
+            "temperature": temperature,
             "responseMimeType": "application/json",
         },
     }
     models_to_try: list[str] = []
-    for candidate in (model, "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"):
+    for candidate in (model, "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"):
         if candidate not in models_to_try:
             models_to_try.append(candidate)
 
@@ -103,7 +105,8 @@ def call_json(system: str, user: str, schema: type[T]) -> LLMResult:
     api_key = getattr(settings, "effective_api_key", settings.llm_api_key) or ""
 
     if provider == "google-gemini":
-        response, err, used_model = _call_gemini(settings, api_key, system, user)
+        temp = 0.65 if schema.__name__ == "AssistantDraft" else 0.2
+        response, err, used_model = _call_gemini(settings, api_key, system, user, temperature=temp)
         if err is not None or response is None:
             return err or _failure("PROVIDER_ERROR", "The model provider could not be reached.")
         if response.status_code == 429:
@@ -114,7 +117,8 @@ def call_json(system: str, user: str, schema: type[T]) -> LLMResult:
         try:
             body = response.json()
             parts = body["candidates"][0]["content"]["parts"]
-            content = "".join(p.get("text", "") for p in parts if isinstance(p, dict))
+            non_thought_parts = [p.get("text", "") for p in parts if isinstance(p, dict) and not p.get("thought")]
+            content = "".join(non_thought_parts) if non_thought_parts else "".join(p.get("text", "") for p in parts if isinstance(p, dict))
         except (ValueError, KeyError, IndexError, TypeError):
             return _failure("PROVIDER_ERROR", "The model provider returned an unexpected response shape.")
         if not isinstance(content, str) or not content.strip():

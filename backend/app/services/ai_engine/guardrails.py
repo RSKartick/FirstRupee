@@ -16,10 +16,11 @@ ADVICE_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             r"\b("
             r"buy\s+(?:[a-z0-9.\-]+\s+)?now|"
             r"sell\s+(?:[a-z0-9.\-]+\s+)?now|"
-            r"you\s+(?:should|must|need\s+to)\s+(?:buy|sell|invest\s+in|put\s+(?:your|all)\s+money\s+in|accumulate|load\s+up\s+on)|"
+            r"you\s+(?:should|must|need\s+to)\s+(?:buy|sell)\s+(?:now|[a-z0-9.\-]+\s+now|[a-z0-9.\-]+\s+immediately)|"
+            r"you\s+(?:should|must|need\s+to)\s+invest\s+in\s+[a-z0-9.\-]+\s+(?:now|immediately)|"
+            r"you\s+(?:should|must|need\s+to)\s+(?:put\s+(?:your|all)\s+money\s+in|load\s+up\s+on)|"
             r"invest\s+your\s+(?:entire\s+)?(?:emergency\s+fund|savings|salary)\s+in|"
-            r"strong\s+(?:buy|sell)\s+(?:call|signal|recommendation)|"
-            r"we\s+recommend\s+(?:buying|selling|investing\s+in)"
+            r"strong\s+(?:buy|sell)\s+(?:call|signal|recommendation)"
             r")\b",
             re.IGNORECASE,
         ),

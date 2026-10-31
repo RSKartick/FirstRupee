@@ -204,6 +204,21 @@ def _stocks_and_instruments_answer(ctx: dict[str, Any]) -> str:
     return intro + stocks_section + broad_section + tail
 
 
+def _general_stocks_overview() -> str:
+    return (
+        "When evaluating stocks in the Indian market (NSE/BSE), it helps to separate broad index exposure from individual company analysis:\n\n"
+        "1. Core Broad-Market Index Exposure (for most long-term portfolios):\n"
+        "   - Nifty 50 Index Funds / ETFs (such as UTI Nifty 50 Index Fund at 0.18% TER or Nippon Nifty 50 BeES ETF at 0.04% TER) give instant ownership of India's 50 largest listed companies across banking, IT, energy, and consumer goods.\n"
+        "   - Flexi-Cap Funds (such as Parag Parikh Flexi Cap Fund at 0.63% Direct TER) actively allocate across large, mid, and small caps.\n\n"
+        "2. Evaluating Individual Stocks (What to check before picking a single company):\n"
+        "   - Balance Sheet & Leverage: Check Debt-to-Equity (< 0.5x is conservative for non-financials) and Interest Coverage (> 4x).\n"
+        "   - Cash Flow Conversion: Compare Operating Cash Flow (OCF) to Net Profit (PAT) to verify reported earnings turn into real cash.\n"
+        "   - Valuation vs Growth: Compare P/E and EV/EBITDA against historical medians and sector peers.\n"
+        "   - Example contrast in the FirstRupee NSE catalogue: Tata Consultancy Services (TCS.NS, ~Rs 2,502.60) combines 24.8% operating margins, 0.08x debt-to-equity, and 98% cash conversion, whereas capital-intensive utilities like Tata Power (TATAPOWER.NS, ~Rs 345.05) carry higher project leverage (1.18x D/E, 2.6x interest coverage) and valuation sensitivity (36.4x P/E).\n\n"
+        "Ask about any specific stock, sector (IT, banking, power, pharma, auto), valuation metric, or mutual fund category and we can dive deeper."
+    )
+
+
 def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, str]] | None = None) -> tuple[str, list[str]]:
     q = question.lower().strip()
     readiness = ctx.get("readiness")
@@ -216,21 +231,69 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
     if not is_financial_query(question):
         return NON_FINANCIAL_REFUSAL, grounding
 
+    # 0. Basic greetings, small talk, and identity questions (without parroting user profile)
+    if re.match(r"^(hi|hello|hey|hii+|yo|good\s+(morning|afternoon|evening)|namaste|sup|what'?s\s+up)[\s!?.]*$", q):
+        return (
+            "Hey there! I am your FirstRupee assistant. You can ask me anything about finance and investing - such as stocks, "
+            "mutual funds, SIPs, taxation (LTCG/STCG), inflation, market valuation metrics, or general questions - as well as "
+            "questions about your personal financial profile whenever you need."
+        ), grounding
+
+    if re.search(r"\b(how are you|how's it going|how r u|who are you|what are you|what can you do)\b", q):
+        return (
+            "I am doing well! I am an AI assistant focused primarily on finance, markets, and personal money management, "
+            "and I can also help with everyday questions. Ask me about Indian stocks, ETFs, mutual funds, tax rules, financial "
+            "concepts, or your own portfolio plan."
+        ), grounding
+
+    if re.match(r"^(ok|okay|k|cool|got it|understood|thanks|thank you|thx|nice|great)[\s!?.]*$", q):
+        return "Glad that helped! Let me know what you would like to explore next - whether it is a market topic, a specific stock or fund, or another question.", grounding
+
     # 1. Check if the user is asking about a specific instrument by name/ticker
     for pat, sym in _ASSET_KEYWORDS:
         if pat.search(q):
             return _format_asset_detail(sym, ctx), grounding
 
-    # 2. Check if the user is asking about specific stocks, shares, or equity picks
-    if re.search(r"\b(stock|stocks|share|shares|equity|equities|company|companies|ticker|tickers|which\s+fund|specific\s+fund|specific\s+stock|single\s+stock)\b", q):
-        return _stocks_and_instruments_answer(ctx), grounding
+    # 2. General finance topics (Taxes, Inflation, FD vs Debt, Gold, Sectors) - answered directly without profile parroting
+    if re.search(r"\b(tax|taxes|ltcg|stcg|80c|income tax|capital gain|capital gains)\b", q):
+        return (
+            "Here is how investment taxation works in India (FY2025-26 rules):\n"
+            "- Equity Stocks & Equity Mutual Funds (>= 65% domestic equity):\n"
+            "  * Short-Term Capital Gains (STCG, held < 12 months): Taxed at 20%.\n"
+            "  * Long-Term Capital Gains (LTCG, held >= 12 months): Taxed at 12.5% on gains above Rs 1.25 lakh per financial year.\n"
+            "- Debt Mutual Funds & Liquid Funds (purchased after April 1, 2023):\n"
+            "  * Gains are taxed at your applicable income-tax slab rate regardless of holding period, though tax is only triggered upon redemption (unlike FDs where interest is taxed annually on accrual).\n"
+            "- Gold ETFs:\n"
+            "  * Listed Gold ETFs held for more than 12 months qualify for the 12.5% LTCG rate."
+        ), grounding
 
-    # 3. Check if the user is asking for profile summary / details
-    if re.search(r"\b(my profile|my details|my inputs|my numbers|my data|what did i enter|what do you know about me|who am i|my situation|summarize my)\b", q):
+    if re.search(r"\b(inflation|purchasing power|real return|cagr|compounding|compound interest)\b", q):
+        return (
+            "Inflation erodes purchasing power over time, so what matters for long-term wealth is your post-tax, post-inflation 'real return':\n"
+            "- If CPI inflation averages 5.5% to 6% in India and a savings account or taxed FD yields ~5% post-tax, your real purchasing power slowly shrinks.\n"
+            "- Sovereign bonds / G-Secs (~6.8% to 7.2% yield) roughly preserve purchasing power with low volatility.\n"
+            "- Broad equity indices (like the Nifty 50) carry higher short-term drawdowns (15% to 30% in downturns) but historically compound above inflation over 5 to 10+ year horizons."
+        ), grounding
+
+    if re.search(r"\b(fd|fixed deposit|savings account|liquid fund vs fd)\b", q):
+        return (
+            "Comparing Bank Fixed Deposits (FDs) vs Liquid / G-Sec Funds:\n"
+            "- Bank FDs: Guaranteed stated interest rate and DICGC insurance up to Rs 5 lakh per bank, but premature withdrawal penalties apply and interest is taxed every year on accrual (TDS).\n"
+            "- Liquid Mutual Funds (e.g. Nippon India Liquid Fund): Invest in 91-day Government T-Bills and high-grade money market instruments. No lock-in or exit load after 7 days, T+1 settlement, and tax is deferred until you actually redeem units."
+        ), grounding
+
+    # 3. Check if the user is asking about specific stocks, shares, or equity picks
+    if re.search(r"\b(stock|stocks|share|shares|equity|equities|company|companies|ticker|tickers|which\s+fund|specific\s+fund|specific\s+stock|single\s+stock)\b", q):
+        if re.search(r"\b(my|for me|my plan|my portfolio|should i)\b", q) and readiness:
+            return _stocks_and_instruments_answer(ctx), grounding
+        return _general_stocks_overview(), grounding
+
+    # 4. Check if the user is explicitly asking for their profile summary / details
+    if re.search(r"\b(my profile|my details|my inputs|my numbers|my data|what did i enter|what do you know about me|my situation|summarize my)\b", q):
         return _profile_summary_text(ctx), grounding
 
-    # 4. Goal questions
-    if prof and re.search(r"\b(my goal|my target|my deadline|goalhorizon|horizon)\b", q):
+    # 5. Goal questions
+    if prof and re.search(r"\b(my goal|my target|my deadline|goalhorizon)\b", q):
         if not prof.get("goal_name"):
             return "You have not recorded a specific financial goal on your profile yet.", grounding
         m = (readiness or {}).get("metrics") or {}
@@ -241,48 +304,25 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
             f"already reserved: {fmt_inr(D(prof.get('goal_reserved_amount') or 0))})."
         ), grounding
 
-    # 5. Debt / loan / EMI questions
-    if prof and re.search(r"\b(my debt|my loan|my loans|my emi|my liabilities|debt|loan|emi)\b", q):
+    # 6. Debt / loan / EMI questions
+    if prof and re.search(r"\b(my debt|my loan|my loans|my emi|my liabilities)\b", q):
         debts = prof.get("debts") or []
         if not debts and D(prof.get("monthly_emi") or 0) == 0:
             return "You have ₹0 in monthly EMIs and no active loans recorded on your profile.", grounding
         debt_lines = "; ".join(
             f"{d['debt_type']}: {fmt_inr(D(d['outstanding_amount']))} at {d['interest_rate_pct']}% interest, EMI {fmt_inr(D(d['emi_amount']))}/mo ({d['remaining_months']} months left)"
-            for d in debts
         ) or "no itemized loans"
         return (
             f"Your recorded monthly EMI outflow is {fmt_inr(D(prof.get('monthly_emi') or 0))}/month and total liabilities are "
             f"{fmt_inr(D(prof.get('existing_liabilities') or 0))}. Itemized loans: {debt_lines}."
         ), grounding
 
-    # 6. Glossary terms (word-boundary matched)
+    # 7. Glossary terms (word-boundary matched)
     for term, text, pat in _GLOSSARY_PATTERNS:
         if pat.search(q):
             if readiness and term in ("emergency fund", "surplus", "risk capacity", "risk tolerance"):
                 return f"{text}\n\nFor your profile: readiness is {readiness['status']}.", grounding
             return text, grounding
-
-    # 7. Portfolio recommendation / where to invest / how much to invest
-    if re.search(r"recommend|allocat|where to invest|what to invest|how much|plan|portfolio|beginner|intermediate|experienced|etf|mutual fund|index fund|gold|bond", q):
-        if not readiness:
-            return ("Complete your financial assessment first so I can calculate your exact monthly rupee allocation and "
-                    "experience-tailored recommendations."), grounding
-        rec = readiness.get("recommendations") or {}
-        allocs = rec.get("asset_allocations") or []
-        alloc_lines = "\n".join(
-            f"- {a['name']} ({a['symbol']}): {a['allocation_pct']}% ({fmt_inr(D(a['monthly_amount_inr']))}/month) - {a['role']}"
-            for a in allocs
-        )
-        mp = rec.get("monthly_plan") or {}
-        return (
-            f"{rec.get('headline', readiness['explanation'])}\n\n"
-            f"{rec.get('summary', '')}\n\n"
-            f"Monthly Cash-Flow Plan (from {fmt_inr(D(mp.get('monthly_surplus_inr', '0')))} monthly surplus):\n"
-            f"- Emergency Reserve Top-Up: {fmt_inr(D(mp.get('emergency_topup_inr', '0')))}/month\n"
-            f"- Goal Reserve Funding: {fmt_inr(D(mp.get('goal_reserve_inr', '0')))}/month\n"
-            f"- Recommended Market SIP: {fmt_inr(D(mp.get('recommended_market_deployment_inr', '0')))}/month\n\n"
-            f"Instrument Breakdown ({rec.get('tone_label', 'tailored')}):\n{alloc_lines}"
-        ), grounding
 
     # 8. Readiness status / can I invest / am I ready
     if re.search(r"ready|can i invest|should i invest|why not|blocker|warning", q):
@@ -309,8 +349,40 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
             f"Next steps: {steps}"
         ), grounding
 
-    # 9. Simulator questions
-    if re.search(r"simulat|scenario|sip|lump", q):
+    # 9. Personal portfolio recommendation / where to invest
+    if re.search(r"recommend|allocat|where to invest|what to invest|my plan|my portfolio", q):
+        if not readiness:
+            return ("Complete your financial assessment first so I can calculate your exact monthly rupee allocation and "
+                    "experience-tailored recommendations."), grounding
+        rec = readiness.get("recommendations") or {}
+        allocs = rec.get("asset_allocations") or []
+        alloc_lines = "\n".join(
+            f"- {a['name']} ({a['symbol']}): {a['allocation_pct']}% ({fmt_inr(D(a['monthly_amount_inr']))}/month) - {a['role']}"
+            for a in allocs
+        )
+        mp = rec.get("monthly_plan") or {}
+        return (
+            f"{rec.get('headline', readiness['explanation'])}\n\n"
+            f"{rec.get('summary', '')}\n\n"
+            f"Monthly Cash-Flow Plan (from {fmt_inr(D(mp.get('monthly_surplus_inr', '0')))} monthly surplus):\n"
+            f"- Emergency Reserve Top-Up: {fmt_inr(D(mp.get('emergency_topup_inr', '0')))}/month\n"
+            f"- Goal Reserve Funding: {fmt_inr(D(mp.get('goal_reserve_inr', '0')))}/month\n"
+            f"- Recommended Market SIP: {fmt_inr(D(mp.get('recommended_market_deployment_inr', '0')))}/month\n\n"
+            f"Instrument Breakdown ({rec.get('tone_label', 'tailored')}):\n{alloc_lines}"
+        ), grounding
+
+    # 10. General Mutual Funds / Index Funds / ETFs / Gold / Bonds explanation
+    if re.search(r"\b(etf|mutual fund|index fund|gold|bond|g-sec|gilt|debt fund)\b", q):
+        return (
+            "Here is how the main building blocks of an Indian investment portfolio work:\n"
+            "- Direct Index Mutual Funds (e.g. UTI Nifty 50 Index Fund, 0.18% TER): Passively track the Nifty 50 index without needing a demat account; ideal for automated monthly SIPs.\n"
+            "- Exchange-Traded Funds (e.g. Nifty BeES 0.04% TER, Gold BeES 0.79% TER, SBI 10Y G-Sec ETF 0.17% TER): Trade live on NSE during market hours via a demat account.\n"
+            "- Active Flexi-Cap Funds (e.g. Parag Parikh Flexi Cap, 0.63% TER): Give fund managers flexibility across large, mid, and small caps.\n"
+            "- Sovereign Fixed Income & Liquid Funds: Anchor portfolio stability and fund short-term goals or emergency reserves."
+        ), grounding
+
+    # 11. Simulator questions
+    if re.search(r"simulat|scenario|lump", q):
         runs = ctx.get("simulations") or []
         base = ("The simulator compares lump-sum, staged, delayed and comparison scenarios on the same evaluation date. "
                 "Hypothetical paths are labelled and are not forecasts.")
@@ -318,7 +390,7 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
             base += f" Your latest run: {runs[0]['scenario_type']}, time-weighted return {runs[0]['twr']}%."
         return base, grounding
 
-    # 10. Research questions
+    # 12. Research questions
     if re.search(r"research|analyst|devil|evidence", q):
         items = ctx.get("research") or []
         if not items:
@@ -326,7 +398,7 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
         names = ", ".join(f"{r['asset_name']} ({r['status']})" for r in items[:5])
         return f"Your stored analyses: {names}. Evaluator statuses are evidence assessments, not buy or sell signals.", grounding
 
-    # 11. Timing / Three Clocks
+    # 13. Timing / Three Clocks
     if re.search(r"timing|clock|clocks|when to invest|market clock", q):
         timing = ctx.get("timing")
         if timing:
@@ -340,40 +412,59 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
     if re.search(r"passport", q):
         return GLOSSARY["decision passport"], grounding
 
-    # 12. Cash flow / salary / expenses / savings
-    if re.search(r"cash flow|surplus|budget|income|expense|salary|salray|salery|saving|earn|mention|money|liquid", q) and (readiness or prof):
+    # 14. Cash flow / salary / expenses / savings (when asking about own numbers)
+    if re.search(r"cash flow|budget|my income|my expense|salary|salray|salery|my saving|did i mention|just mention", q) and (readiness or prof):
         if prof and readiness:
             m = readiness["metrics"]
             return (
-                f"From your initial profile ({prof.get('display_name')}): your monthly income/salary is {fmt_inr(D(prof.get('monthly_income') or 0))}, "
+                f"From your profile ({prof.get('display_name')}): your monthly income/salary is {fmt_inr(D(prof.get('monthly_income') or 0))}, "
                 f"essential expenses are {fmt_inr(D(prof.get('essential_expenses') or 0))}, non-essential expenses are "
                 f"{fmt_inr(D(prof.get('nonessential_expenses') or 0))}, and monthly EMIs are {fmt_inr(D(prof.get('monthly_emi') or 0))}. "
                 f"Your monthly surplus is {fmt_inr(D(m['monthly_surplus']))} and free investable monthly capacity after reserves is "
                 f"{fmt_inr(D(m['investable_monthly']))}."
             ), grounding
 
-    # 13. Conversational follow-ups ("why?", "explain more", "tell me more", "pls tell", "what about...")
-    if re.search(r"\b(why|how|explain|more|detail|elaborate|pls|please|what about|which one|help|hi|hello|hey)\b", q) and readiness:
-        rec = readiness.get("recommendations") or {}
-        mp = rec.get("monthly_plan") or {}
-        allocs = rec.get("asset_allocations") or []
-        top_instruments = ", ".join(f"{a['name']} ({a['symbol']}, {a['allocation_pct']}%)" for a in allocs[:4])
-        return (
-            f"Here is a direct summary for {prof.get('display_name') if prof else 'your profile'} ({readiness['status']}):\n"
-            f"1. Monthly Surplus & Deployment: Out of {fmt_inr(D(mp.get('monthly_surplus_inr', '0')))}/month surplus, "
-            f"set aside {fmt_inr(D(mp.get('emergency_topup_inr', '0')))}/month for emergency reserves and "
-            f"{fmt_inr(D(mp.get('goal_reserve_inr', '0')))}/month for your goal reserve, leaving "
-            f"{fmt_inr(D(mp.get('recommended_market_deployment_inr', '0')))}/month for your market portfolio.\n"
-            f"2. Recommended Instruments: {top_instruments}.\n"
-            f"3. Single Stocks vs Index Funds: In our NSE catalogue, TCS.NS has strong cash conversion (98% OCF/PAT) and near-zero debt (0.08x D/E), "
-            f"whereas TATAPOWER.NS carries higher leverage (1.18x D/E) and valuation (36.4x P/E) risks. "
-            f"Ask me about any specific ticker (TCS.NS, TATAPOWER.NS, UTI-NIFTY50, PPFAS-FLEXI, GOLDBEES.NS, SETF10GILT.NS, NIPPON-LIQUID) for a full breakdown!"
-        ), grounding
-
-    return _stocks_and_instruments_answer(ctx) if readiness else (
-        "I have your FirstRupee workspace open. Complete or select a financial profile to get personalized numbers, or ask me about "
-        "any instrument in our catalogue (TCS.NS, TATAPOWER.NS, UTI-NIFTY50, PPFAS-FLEXI, NIPPON-LIQUID, SETF10GILT.NS, GOLDBEES.NS, NIFTYBEES.NS)."
+    return (
+        "I can help with any financial or investing question (such as Indian stocks, mutual funds, ETFs, SIP strategy, LTCG/STCG taxes, "
+        "inflation, valuation ratios, or debt vs equity), basic everyday questions, or your personal FirstRupee profile if you ask for it. "
+        "What topic would you like to dive into?"
     ), grounding
+
+
+def _compact_profile_reference(ctx: dict[str, Any]) -> dict[str, Any] | None:
+    prof = ctx.get("investor_profile")
+    readiness = ctx.get("readiness")
+    if not prof:
+        return None
+    rec = (readiness or {}).get("recommendations") or {}
+    mp = rec.get("monthly_plan") or {}
+    m = (readiness or {}).get("metrics") or {}
+    return {
+        "_usage_note": "Use ONLY if the user asks about their own profile, salary, readiness, or personal plan. Do NOT mention or repeat on general finance or basic questions.",
+        "display_name": prof.get("display_name"),
+        "experience_level": prof.get("investment_experience"),
+        "monthly_income_inr": prof.get("monthly_income"),
+        "essential_expenses_inr": prof.get("essential_expenses"),
+        "nonessential_expenses_inr": prof.get("nonessential_expenses"),
+        "monthly_emi_inr": prof.get("monthly_emi"),
+        "monthly_surplus_inr": m.get("monthly_surplus"),
+        "emergency_reserves_inr": prof.get("emergency_reserves"),
+        "emergency_coverage_months": m.get("emergency_coverage_months"),
+        "goal_name": prof.get("goal_name"),
+        "goal_amount_inr": prof.get("goal_amount"),
+        "goal_deadline": prof.get("goal_deadline"),
+        "readiness_status": (readiness or {}).get("status"),
+        "recommended_market_sip_inr": mp.get("recommended_market_deployment_inr"),
+        "recommended_allocations": [
+            {
+                "symbol": a["symbol"],
+                "name": a["name"],
+                "weight_pct": a["allocation_pct"],
+                "monthly_inr": a["monthly_amount_inr"],
+            }
+            for a in (rec.get("asset_allocations") or [])
+        ],
+    }
 
 
 def answer(messages: list[dict[str, str]], ctx: dict[str, Any]) -> dict[str, Any]:
@@ -391,33 +482,22 @@ def answer(messages: list[dict[str, str]], ctx: dict[str, Any]) -> dict[str, Any
         }
 
     if settings.llm_enabled:
-        catalogue_digest = [
+        catalogue_brief = [
             {
                 "symbol": a["symbol"],
                 "name": a["name"],
                 "asset_type": a["asset_type"],
                 "volatility_class": a["volatility_class"],
-                "min_horizon_months": a["min_horizon_months"],
                 "expense_ratio_pct": a["expense_ratio_pct"],
-                "description": a["description"],
-                "advantages": a["advantages"],
-                "risks": a["risks"],
-                "latest_evidence": (a.get("evidence") or [{}])[-1],
+                "key_metrics": ((a.get("evidence") or [{}])[-1]).get("payload", {}),
             }
             for a in ASSETS
         ]
-        context = untrusted_block("investor_context_and_question", {
-            "user_account": ctx.get("user_account"),
-            "investor_profile": ctx.get("investor_profile"),
-            "all_profiles": ctx.get("all_profiles", []),
-            "investor_constraints": ctx.get("readiness"),
-            "portfolio_recommendations": (ctx.get("readiness") or {}).get("recommendations"),
-            "catalogue_instruments": catalogue_digest,
-            "timing_three_clocks": ctx.get("timing"),
-            "stored_research": ctx.get("research", []),
-            "stored_simulations": ctx.get("simulations", []),
-            "stored_passports": ctx.get("passports", []),
-            "conversation": messages[-20:],
+        context = untrusted_block("chat_request", {
+            "1_latest_user_message": question,
+            "2_recent_conversation": messages[-12:],
+            "3_firstrupee_catalogue_reference": catalogue_brief,
+            "4_optional_user_profile_reference": _compact_profile_reference(ctx),
         })
         result = call_json(ASSISTANT_SYSTEM, context, AssistantDraft)
         if result.ok and not contains_advice(result.data.answer):
