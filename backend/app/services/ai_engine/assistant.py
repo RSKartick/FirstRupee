@@ -36,25 +36,107 @@ GLOSSARY: dict[str, str] = {
 }
 
 BLOCKED_PATTERNS = [
-    re.compile(r"\bguarantee[ds]?\b", re.IGNORECASE),
-    re.compile(r"\b(buy|sell) (it |this |them )?now\b", re.IGNORECASE),
-    re.compile(r"\byou should (buy|sell|invest in)\b", re.IGNORECASE),
-    re.compile(r"\bwill (double|triple|rise|fall|crash)\b", re.IGNORECASE),
-    re.compile(r"\bcertain (return|profit)s?\b", re.IGNORECASE),
+    re.compile(r"\b100%\s*guaranteed\s*(profit|return)\b", re.IGNORECASE),
 ]
+
+NON_FINANCIAL_REFUSAL = (
+    "I am your FirstRupee assistant focused on finance, investing, and your financial profile. "
+    "Feel free to ask me anything about your salary, expenses, savings, goals, market instruments, or what we just discussed!"
+)
+
+OFF_TOPIC_KEYWORDS = re.compile(
+    r"\b("
+    r"write\s+a\s+(python|javascript|c\+\+|java|html|rust)\s+(program|script|app)|"
+    r"leetcode|binary\s+search\s+tree|mergesort|quicksort"
+    r")\b",
+    re.IGNORECASE,
+)
 
 
 class AssistantDraft(BaseModel):
-    answer: str = Field(min_length=3, max_length=3000)
+    answer: str = Field(min_length=1, max_length=20000)
+
+
+def is_financial_query(question: str) -> bool:
+    q = question.strip()
+    if not q:
+        return False
+    if OFF_TOPIC_KEYWORDS.search(q):
+        return False
+    return True
+
+
+def _profile_summary_text(ctx: dict[str, Any]) -> str:
+    prof = ctx.get("investor_profile")
+    readiness = ctx.get("readiness")
+    if not prof:
+        return "You have not completed an investor profile yet. Complete the onboarding assessment so I can store and use your initial financial inputs."
+    debts = prof.get("debts") or []
+    debt_desc = (
+        ", ".join(
+            f"{d['debt_type']} (outstanding {fmt_inr(D(d['outstanding_amount']))}, rate {d['interest_rate_pct']}%, EMI {fmt_inr(D(d['emi_amount']))}/mo)"
+            for d in debts
+        )
+        if debts
+        else "none recorded"
+    )
+    goal_desc = (
+        f"{prof.get('goal_name')} (target {fmt_inr(D(prof.get('goal_amount') or 0))}, deadline {prof.get('goal_deadline') or 'not set'})"
+        if prof.get("goal_name")
+        else "no specific goal recorded"
+    )
+    status_str = readiness["status"] if readiness else "not assessed"
+    return (
+        f"Here is the initial financial profile stored for {prof.get('display_name')} "
+        f"(age {prof.get('age_range')}, {prof.get('employment_status')}, experience: {prof.get('investment_experience')}):\n"
+        f"- Monthly income: {fmt_inr(D(prof.get('monthly_income') or 0))}\n"
+        f"- Essential expenses: {fmt_inr(D(prof.get('essential_expenses') or 0))}/mo | Non-essential: {fmt_inr(D(prof.get('nonessential_expenses') or 0))}/mo\n"
+        f"- Monthly EMI: {fmt_inr(D(prof.get('monthly_emi') or 0))}/mo | Other commitments: {fmt_inr(D(prof.get('other_commitments') or 0))}/mo\n"
+        f"- Total savings: {fmt_inr(D(prof.get('total_savings') or 0))} | Liquid savings: {fmt_inr(D(prof.get('liquid_savings') or 0))}\n"
+        f"- Emergency reserves: {fmt_inr(D(prof.get('emergency_reserves') or 0))} | Goal-reserved: {fmt_inr(D(prof.get('goal_reserved_amount') or 0))}\n"
+        f"- Current investments: {fmt_inr(D(prof.get('current_investments') or 0))} | Designated monthly investment: {fmt_inr(D(prof.get('monthly_investment_designated') or 0))}/mo\n"
+        f"- Recorded loans/debts: {debt_desc}\n"
+        f"- Primary goal: {goal_desc}\n"
+        f"- Current readiness status: {status_str}"
+    )
 
 
 def _deterministic(question: str, ctx: dict[str, Any]) -> tuple[str, list[str]]:
-    q = question.lower()
+    q = question.lower().strip()
     readiness = ctx.get("readiness")
+    prof = ctx.get("investor_profile")
     grounding: list[str] = []
     if readiness:
         m = readiness["metrics"]
         grounding.append(f"Readiness {readiness['status']} ({readiness['rule_version']}); surplus {fmt_inr(D(m['monthly_surplus']))}.")
+
+    if not is_financial_query(question):
+        return NON_FINANCIAL_REFUSAL, grounding
+
+    if re.search(r"\b(my profile|my details|my inputs|my numbers|my data|what did i enter|what do you know about me|who am i|my situation|summarize my)\b", q):
+        return _profile_summary_text(ctx), grounding
+
+    if prof and re.search(r"\b(my goal|my target|my deadline)\b", q):
+        if not prof.get("goal_name"):
+            return "You have not recorded a specific financial goal on your profile yet.", grounding
+        return (
+            f"Your recorded goal is '{prof['goal_name']}' ({prof.get('goal_category') or 'general'}) with a target of "
+            f"{fmt_inr(D(prof.get('goal_amount') or 0))} by {prof.get('goal_deadline') or 'unspecified deadline'} "
+            f"(importance: {prof.get('goal_importance') or 'n/a'}, liquidity need: {prof.get('goal_liquidity') or 'n/a'})."
+        ), grounding
+
+    if prof and re.search(r"\b(my debt|my loan|my emi|my liabilities)\b", q):
+        debts = prof.get("debts") or []
+        if not debts and D(prof.get("monthly_emi") or 0) == 0:
+            return "You have ₹0 in monthly EMIs and no active loans recorded on your profile.", grounding
+        debt_lines = "; ".join(
+            f"{d['debt_type']}: {fmt_inr(D(d['outstanding_amount']))} at {d['interest_rate_pct']}% interest, EMI {fmt_inr(D(d['emi_amount']))}/mo ({d['remaining_months']} months left)"
+            for d in debts
+        ) or "no itemized loans"
+        return (
+            f"Your recorded monthly EMI outflow is {fmt_inr(D(prof.get('monthly_emi') or 0))}/month and total liabilities are "
+            f"{fmt_inr(D(prof.get('existing_liabilities') or 0))}. Itemized loans: {debt_lines}."
+        ), grounding
 
     for term, text in GLOSSARY.items():
         if term in q:
@@ -108,30 +190,54 @@ def _deterministic(question: str, ctx: dict[str, Any]) -> tuple[str, list[str]]:
         return f"Your stored analyses: {names}. Evaluator statuses are evidence assessments, not buy or sell signals.", grounding
     if re.search(r"passport", q):
         return GLOSSARY["decision passport"], grounding
-    if re.search(r"cash flow|surplus|budget|income|expense", q) and readiness:
-        m = readiness["metrics"]
-        return (f"Your monthly surplus is {fmt_inr(D(m['monthly_surplus']))} after recorded commitments. Investable money after goal and "
-                f"reserve needs is {fmt_inr(D(m['investable_monthly']))} per month."), grounding
-    return ("I can explain investment terms and your own stored results: readiness, research, simulations and passports. "
-            "I cannot recommend a specific investment, predict markets or change your readiness result. "
-            "Try asking about NAV, expense ratio, drawdown, volatility, surplus, risk capacity or the three clocks."), grounding
+    if re.search(r"cash flow|surplus|budget|income|expense|salary|salray|salery|saving|earn|mention", q) and (readiness or prof):
+        if prof and readiness:
+            m = readiness["metrics"]
+            return (
+                f"From your initial profile ({prof.get('display_name')}): your monthly income/salary is {fmt_inr(D(prof.get('monthly_income') or 0))}, "
+                f"essential expenses are {fmt_inr(D(prof.get('essential_expenses') or 0))}, non-essential expenses are "
+                f"{fmt_inr(D(prof.get('nonessential_expenses') or 0))}, and monthly EMIs are {fmt_inr(D(prof.get('monthly_emi') or 0))}. "
+                f"Your monthly surplus is {fmt_inr(D(m['monthly_surplus']))} and free investable monthly capacity after reserves is "
+                f"{fmt_inr(D(m['investable_monthly']))}."
+            ), grounding
+    return (
+        "I have your full FirstRupee financial profile and readiness context loaded. "
+        "Ask me about your monthly surplus, recommended portfolio split, readiness blockers, loans/EMIs, goals, "
+        "or financial concepts such as NAV, expense ratio, drawdown, volatility, risk capacity, or the Three Clocks."
+    ), grounding
 
 
 def answer(messages: list[dict[str, str]], ctx: dict[str, Any]) -> dict[str, Any]:
     question = messages[-1]["content"]
     settings = get_settings()
     guardrails = ["FirstRupee is educational decision support, not investment advice, and does not execute trades."]
+
+    if not is_financial_query(question):
+        return {
+            "answer": NON_FINANCIAL_REFUSAL,
+            "mode": "DETERMINISTIC",
+            "provider": "domain-guardrail",
+            "grounding": [],
+            "guardrails": guardrails,
+        }
+
     if settings.llm_enabled:
         context = untrusted_block("investor_context_and_question", {
+            "user_account": ctx.get("user_account"),
+            "investor_profile": ctx.get("investor_profile"),
+            "all_profiles": ctx.get("all_profiles", []),
             "investor_constraints": ctx.get("readiness"),
+            "portfolio_recommendations": (ctx.get("readiness") or {}).get("recommendations"),
+            "timing_three_clocks": ctx.get("timing"),
             "stored_research": ctx.get("research", []),
             "stored_simulations": ctx.get("simulations", []),
-            "conversation": messages[-6:],
+            "stored_passports": ctx.get("passports", []),
+            "conversation": messages[-20:],
         })
         result = call_json(ASSISTANT_SYSTEM, context, AssistantDraft)
         if result.ok and not any(p.search(result.data.answer) for p in BLOCKED_PATTERNS):
             return {"answer": result.data.answer, "mode": "LLM", "provider": result.provider,
-                    "grounding": ["Readiness figures are quoted from the deterministic engine."], "guardrails": guardrails}
+                    "grounding": ["Profile inputs and readiness figures are quoted from the deterministic engine."], "guardrails": guardrails}
         reason = result.kind if not result.ok else "UNSAFE_OUTPUT"
         guardrails.append(f"Language model answer unavailable ({reason}); deterministic answer shown.")
     text, grounding = _deterministic(question, ctx)

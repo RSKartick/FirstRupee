@@ -1,6 +1,7 @@
 import type {
 	AssetPage,
 	AssetSummary,
+	ChatHistoryItem,
 	ChatResponse,
 	HistoryPoint,
 	MarketBenchmark,
@@ -150,6 +151,8 @@ export const api = {
 	getPassport: (id: number) => request<{ passport: Passport }>('GET', `/passport/${id}`),
 	listPassports: (profileId: number) => request<{ passports: PassportSummary[] }>('GET', `/passport/profile/${profileId}`),
 
+	assistantHistory: () => request<{ messages: ChatHistoryItem[] }>('GET', '/assistant/history'),
+	clearAssistantHistory: () => request<void>('DELETE', '/assistant/history'),
 	assistant: (payload: { profile_id: number | null; messages: { role: 'user' | 'assistant'; content: string }[] }) =>
 		request<ChatResponse>('POST', '/assistant/chat', payload),
 

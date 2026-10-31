@@ -1,7 +1,8 @@
 import adapterNode from '@sveltejs/adapter-node';
-import adapterVercel from '@sveltejs/adapter-vercel';
 
-const adapter = process.env.VERCEL ? adapterVercel : adapterNode;
+const adapter = process.env.VERCEL
+	? (await import('@sveltejs/adapter-vercel')).default
+	: adapterNode;
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {

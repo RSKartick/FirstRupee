@@ -3,12 +3,13 @@ another account is indistinguishable from a record that does not exist."""
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.models.tables import (
     Asset,
     AuthSession,
+    ChatMessageRow,
     DecisionPassportRow,
     InvestorProfile,
     ReadinessResultRow,
@@ -78,3 +79,35 @@ def list_passports(db: Session, user_id: int, profile_id: int) -> list[DecisionP
 
 def get_asset(db: Session, asset_id: int) -> Asset | None:
     return db.get(Asset, asset_id)
+
+
+def list_chat_messages(db: Session, user_id: int, limit: int = 100) -> list[ChatMessageRow]:
+    rows = list(
+        db.scalars(
+            select(ChatMessageRow)
+            .where(ChatMessageRow.user_id == user_id)
+            .order_by(ChatMessageRow.id.desc())
+            .limit(limit)
+        ).all()
+    )
+    rows.reverse()
+    return rows
+
+
+def add_chat_message(
+    db: Session,
+    user_id: int,
+    profile_id: int | None,
+    role: str,
+    content: str,
+    meta: dict | None = None,
+) -> ChatMessageRow:
+    row = ChatMessageRow(user_id=user_id, profile_id=profile_id, role=role, content=content, meta=meta)
+    db.add(row)
+    db.flush()
+    return row
+
+
+def clear_chat_messages(db: Session, user_id: int) -> None:
+    db.execute(delete(ChatMessageRow).where(ChatMessageRow.user_id == user_id))
+    db.commit()

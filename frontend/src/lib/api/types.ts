@@ -383,3 +383,12 @@ export interface ChatResponse {
 	grounding: string[];
 	guardrails: string[];
 }
+
+export interface ChatHistoryItem {
+	id: number;
+	role: 'user' | 'assistant';
+	content: string;
+	profile_id: number | null;
+	meta?: Partial<ChatResponse> | null;
+	created_at: string;
+}

@@ -416,17 +416,96 @@ def generate_passport(db: Session, user: User, row: InvestorProfile, body: Any, 
 
 # --------------------------------------------------------------------------- assistant
 
+def _serialize_chat_message(msg: Any) -> dict[str, Any]:
+    return {
+        "id": msg.id,
+        "role": msg.role,
+        "content": msg.content,
+        "profile_id": msg.profile_id,
+        "meta": msg.meta,
+        "created_at": msg.created_at.isoformat(),
+    }
+
+
+def assistant_history_for(db: Session, user: User) -> list[dict[str, Any]]:
+    return [_serialize_chat_message(m) for m in repo.list_chat_messages(db, user.id, limit=100)]
+
+
+def clear_assistant_history_for(db: Session, user: User) -> None:
+    repo.clear_chat_messages(db, user.id)
+
+
 def assistant_for(db: Session, user: User, profile_id: int | None, messages: list[dict[str, str]], as_of: date) -> dict[str, Any]:
-    context: dict[str, Any] = {"readiness": None, "research": [], "simulations": []}
+    all_profiles = repo.list_profiles(db, user.id)
+    row: InvestorProfile | None = None
     if profile_id is not None:
         row = get_owned_profile(db, user, profile_id)
-        context["readiness"] = readiness_for(db, row, as_of)
+    elif all_profiles:
+        row = all_profiles[0]
+
+    context: dict[str, Any] = {
+        "user_account": {"display_name": user.display_name, "email": user.email, "is_guest": user.is_guest},
+        "investor_profile": None,
+        "all_profiles": [
+            {"id": p.id, "display_name": p.display_name, "investment_experience": p.investment_experience}
+            for p in all_profiles
+        ],
+        "readiness": None,
+        "timing": None,
+        "research": [],
+        "simulations": [],
+        "passports": [],
+    }
+    if row is not None:
+        readiness = readiness_for(db, row, as_of)
+        context["investor_profile"] = profile_out(row)
+        context["readiness"] = readiness
+        context["timing"] = assess_timing(financial_from_row(row), readiness, None, as_of)
         for item in repo.list_research(db, user.id, row.id, limit=5):
-            context["research"].append({"asset_name": item.result["asset"]["name"], "status": item.evaluator_status})
-        for sim in repo.list_simulations(db, user.id, row.id, limit=3):
+            context["research"].append({
+                "id": item.id,
+                "asset_name": item.result["asset"]["name"],
+                "symbol": item.result["asset"].get("symbol"),
+                "status": item.evaluator_status,
+                "thesis": item.result.get("analyst", {}).get("thesis"),
+                "counter_thesis": item.result.get("devil", {}).get("counter_thesis"),
+            })
+        for sim in repo.list_simulations(db, user.id, row.id, limit=5):
             metrics = sim.result["primary"]["run"]["metrics"]
-            context["simulations"].append({"scenario_type": sim.scenario_type, "twr": metrics["time_weighted_return_pct"]})
-    return assistant_engine.answer(messages, context)
+            context["simulations"].append({
+                "id": sim.id,
+                "scenario_type": sim.scenario_type,
+                "twr": metrics["time_weighted_return_pct"],
+                "ending_value": metrics.get("ending_value"),
+                "max_drawdown_pct": metrics.get("max_drawdown_pct"),
+            })
+        for pp in repo.list_passports(db, user.id, row.id)[:5]:
+            context["passports"].append(passport_summary(pp))
+
+    stored_history = repo.list_chat_messages(db, user.id, limit=30)
+    latest_user_msg = messages[-1]["content"].strip()
+    full_conversation = [{"role": m.role, "content": m.content} for m in stored_history]
+    full_conversation.append({"role": "user", "content": latest_user_msg})
+
+    reply = assistant_engine.answer(full_conversation, context)
+
+    active_pid = row.id if row is not None else profile_id
+    repo.add_chat_message(db, user.id, active_pid, "user", latest_user_msg, meta=None)
+    repo.add_chat_message(
+        db,
+        user.id,
+        active_pid,
+        "assistant",
+        reply["answer"],
+        meta={
+            "mode": reply["mode"],
+            "provider": reply["provider"],
+            "grounding": reply.get("grounding", []),
+            "guardrails": reply.get("guardrails", []),
+        },
+    )
+    db.commit()
+    return reply
 
 
 def passport_summary(row: DecisionPassportRow) -> dict[str, Any]:

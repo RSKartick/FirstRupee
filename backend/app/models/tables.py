@@ -217,3 +217,17 @@ class DecisionPassportRow(Base):
     schema_version: Mapped[str] = mapped_column(String(30), nullable=False)
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+
+
+class ChatMessageRow(Base):
+    """Persistent chatbot conversation history scoped to the authenticated user account across all sessions."""
+
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    profile_id: Mapped[int | None] = mapped_column(ForeignKey("investor_profiles.id", ondelete="SET NULL"), index=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    meta: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)

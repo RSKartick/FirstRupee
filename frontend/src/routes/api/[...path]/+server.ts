@@ -15,7 +15,8 @@ const handle: RequestHandler = async ({ request, params, url }) => {
 		const value = request.headers.get(name);
 		if (value) headers.set(name, value);
 	}
-	const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text();
+	const rawBody = request.method === 'GET' || request.method === 'HEAD' ? '' : await request.text();
+	const body = rawBody ? rawBody : undefined;
 
 	let upstream: Response;
 	try {
@@ -31,6 +32,9 @@ const handle: RequestHandler = async ({ request, params, url }) => {
 	const contentType = upstream.headers.get('content-type');
 	if (contentType) responseHeaders.set('content-type', contentType);
 	for (const cookie of upstream.headers.getSetCookie()) responseHeaders.append('set-cookie', cookie);
+	if (upstream.status === 204 || upstream.status === 205 || upstream.status === 304) {
+		return new Response(null, { status: upstream.status, headers: responseHeaders });
+	}
 	return new Response(await upstream.arrayBuffer(), { status: upstream.status, headers: responseHeaders });
 };
 

@@ -91,7 +91,7 @@ freePort(frontendPort);
 
 const backend = spawn(
 	python,
-	['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', backendPort],
+	['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', backendPort, '--reload'],
 	{ cwd: backendDir, stdio: 'inherit', env: process.env }
 );
 

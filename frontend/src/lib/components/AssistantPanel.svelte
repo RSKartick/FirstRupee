@@ -2,22 +2,69 @@
 	import { api, ApiError } from '$lib/api/client';
 	import { session } from '$lib/stores/session.svelte';
 	import type { ChatResponse } from '$lib/api/types';
-	import { X, Send } from 'lucide-svelte';
+	import { X, Send, Trash2 } from 'lucide-svelte';
 
 	let { onclose }: { onclose: () => void } = $props();
 
-	type Entry = { role: 'user' | 'assistant'; content: string; meta?: ChatResponse };
+	type Entry = { role: 'user' | 'assistant'; content: string; meta?: Partial<ChatResponse> | null };
 	let entries = $state<Entry[]>([]);
 	let draft = $state('');
 	let busy = $state(false);
+	let loadingHistory = $state(false);
 	let error = $state('');
+	let scrollContainer: HTMLDivElement | undefined = $state();
 
 	const suggestions = [
+		'Summarize my initial financial profile and readiness',
 		'Show my recommended portfolio and monthly rupee split',
 		'Am I ready to invest right now?',
-		'What is an expense ratio?',
-		'What does maximum drawdown mean?'
+		'Explain my loans, EMIs, and emergency reserve status'
 	];
+
+	$effect(() => {
+		const userId = session.user?.id;
+		void loadHistory(userId);
+	});
+
+	$effect(() => {
+		if (entries.length > 0 && scrollContainer) {
+			scrollContainer.scrollTop = scrollContainer.scrollHeight;
+		}
+	});
+
+	async function loadHistory(userId: number | undefined) {
+		error = '';
+		if (!userId) {
+			entries = [];
+			return;
+		}
+		loadingHistory = true;
+		try {
+			const res = await api.assistantHistory();
+			entries = res.messages.map((m) => ({
+				role: m.role,
+				content: m.content,
+				meta: m.meta
+			}));
+		} catch {
+			// Ignore if history cannot be loaded yet
+		} finally {
+			loadingHistory = false;
+		}
+	}
+
+	async function clearHistory() {
+		if (busy) return;
+		error = '';
+		const previous = entries;
+		entries = [];
+		try {
+			await api.clearAssistantHistory();
+		} catch (err) {
+			entries = previous;
+			error = err instanceof ApiError ? err.message : 'Could not clear chat history.';
+		}
+	}
 
 	async function send(text: string) {
 		const question = text.trim();
@@ -27,7 +74,7 @@
 		busy = true;
 		error = '';
 		try {
-			const history = entries.slice(-8).map((e) => ({ role: e.role, content: e.content }));
+			const history = entries.slice(-16).map((e) => ({ role: e.role, content: e.content }));
 			const reply = await api.assistant({ profile_id: session.activeProfileId, messages: history });
 			entries = [...entries, { role: 'assistant', content: reply.answer, meta: reply }];
 		} catch (err) {
@@ -42,14 +89,23 @@
 	<div class="flex h-full w-full max-w-xl flex-col border-l border-line bg-canvas">
 		<div class="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
 			<div>
-				<p class="text-sm font-semibold">FirstRupee assistant</p>
-				<p class="muted mt-0.5">Explains terms and your own stored results. It cannot recommend investments or change your readiness result.</p>
+				<p class="text-sm font-semibold">FirstRupee Financial Assistant</p>
+				<p class="muted mt-0.5">Grounded in your full initial profile, readiness, and portfolio plan. Persistent across your account sessions. Answers financial questions only.</p>
 			</div>
-			<button class="btn btn-ghost" onclick={onclose} aria-label="Close assistant"><X size={16} /></button>
+			<div class="flex shrink-0 items-center gap-1.5">
+				{#if entries.length > 0}
+					<button class="btn btn-ghost !px-2.5 !py-1.5 text-[12px]" onclick={clearHistory} title="Clear conversation history" aria-label="Clear conversation history">
+						<Trash2 size={14} />Clear
+					</button>
+				{/if}
+				<button class="btn btn-ghost" onclick={onclose} aria-label="Close assistant"><X size={16} /></button>
+			</div>
 		</div>
 
-		<div class="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-			{#if entries.length === 0}
+		<div bind:this={scrollContainer} class="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+			{#if loadingHistory && entries.length === 0}
+				<p class="muted text-[12px]">Restoring your conversation history...</p>
+			{:else if entries.length === 0}
 				<div class="flex flex-wrap gap-2">
 					{#each suggestions as suggestion (suggestion)}
 						<button class="btn text-[12px]" onclick={() => send(suggestion)}>{suggestion}</button>
@@ -60,13 +116,13 @@
 				<div class="flex {entry.role === 'user' ? 'justify-end' : 'justify-start'}">
 					<div class="max-w-[85%] whitespace-pre-wrap rounded-xl px-4 py-3 text-[13px] leading-relaxed {entry.role === 'user' ? 'bg-brand/15' : 'border border-line bg-raised/60'}">
 						{entry.content}
-						{#if entry.meta}
-							<p class="mt-2 text-[11px] text-muted">{entry.meta.mode === 'LLM' ? `Language model (${entry.meta.provider})` : 'Deterministic answer - no language model used'}</p>
+						{#if entry.meta && entry.meta.mode}
+							<p class="mt-2 text-[11px] text-muted">{entry.meta.mode === 'LLM' ? `Language model (${entry.meta.provider})` : entry.meta.provider === 'domain-guardrail' ? 'Financial domain guardrail' : 'Deterministic engine'}</p>
 						{/if}
 					</div>
 				</div>
 			{/each}
-			{#if busy}<p class="muted">Thinking…</p>{/if}
+			{#if busy}<p class="muted">Thinking...</p>{/if}
 			{#if error}<p class="field-error" role="alert">{error}</p>{/if}
 		</div>
 
@@ -78,7 +134,7 @@
 			}}
 		>
 			<label class="sr-only" for="assistant-input">Ask the assistant</label>
-			<input id="assistant-input" class="field-input" bind:value={draft} placeholder="Ask about a term or your stored results…" maxlength="2000" />
+			<input id="assistant-input" class="field-input" bind:value={draft} placeholder="Ask a financial question or about your profile..." maxlength="2000" />
 			<button class="btn btn-primary" type="submit" disabled={busy || draft.trim() === ''}><Send size={16} />Send</button>
 		</form>
 	</div>

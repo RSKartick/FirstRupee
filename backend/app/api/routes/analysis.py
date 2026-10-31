@@ -107,6 +107,17 @@ def get_passport(passport_id: int, user: User = Depends(current_user), db: Sessi
     return {"passport": row.snapshot}
 
 
+@assistant_router.get("/history")
+def get_assistant_history(user: User = Depends(current_user), db: Session = Depends(database)) -> dict[str, Any]:
+    return {"messages": workflow.assistant_history_for(db, user)}
+
+
+@assistant_router.delete("/history", dependencies=[Depends(csrf_protected)])
+def clear_assistant_history(user: User = Depends(current_user), db: Session = Depends(database)) -> dict[str, bool]:
+    workflow.clear_assistant_history_for(db, user)
+    return {"cleared": True}
+
+
 @assistant_router.post("/chat", dependencies=[Depends(csrf_protected)])
 def chat(body: ChatRequest, user: User = Depends(current_user), db: Session = Depends(database),
          as_of: date = Depends(reference_date)) -> dict[str, Any]:
