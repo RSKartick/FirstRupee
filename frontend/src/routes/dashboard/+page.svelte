@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { api, ApiError } from '$lib/api/client';
 import { isCurrentDashboardLoad, loadDashboardCore } from '$lib/dashboard/load';
-	import type { AssetSummary, MarketBenchmark, ProfileOut, Readiness } from '$lib/api/types';
+import type { AssetKey, MarketBenchmark, ProfileOut, Readiness } from '$lib/api/types';
 	import { loadProfiles, session } from '$lib/stores/session.svelte';
 	import { dateLabel, inr, labelize, months, pct, signedPct } from '$lib/format';
 	import Card from '$lib/components/Card.svelte';
@@ -12,7 +12,7 @@ import { isCurrentDashboardLoad, loadDashboardCore } from '$lib/dashboard/load';
 
 	let profile = $state<ProfileOut | null>(null);
 	let readiness = $state<Readiness | null>(null);
-	let catalogue = $state<AssetSummary[]>([]);
+	let catalogue = $state<AssetKey[]>([]);
 	let benchmarks = $state<MarketBenchmark[]>([]);
 	let loading = $state(false);
 	let benchmarkLoading = $state(false);

@@ -125,6 +125,7 @@ def list_assets(
     asset_type: Literal["EQUITY", "INDEX_FUND", "MUTUAL_FUND", "ETF", "FIXED_INCOME", "GOLD"] | None = None,
     max_volatility: Literal["LOW", "MODERATE", "HIGH"] | None = None,
     max_min_horizon_months: int | None = Query(default=None, ge=1, le=240),
+    fields: Literal["id,symbol"] | None = Query(default=None),
     db: Session = Depends(database),
 ) -> dict[str, Any]:
     assets = list(db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all())
@@ -138,6 +139,12 @@ def list_assets(
             continue
         filtered.append(asset)
     provider = get_provider()
+    if fields == "id,symbol":
+        return {
+            "assets": [{"id": asset.id, "symbol": asset.symbol} for asset in filtered],
+            "provider": provider.id,
+            "note": provider.attribution,
+        }
     return {
         "assets": _summaries(db, filtered),
         "provider": provider.id,

@@ -1,10 +1,10 @@
 import { api } from '$lib/api/client';
-import type { AssetSummary, ProfileOut, Readiness } from '$lib/api/types';
+import type { AssetKey, ProfileOut, Readiness } from '$lib/api/types';
 
-type DashboardApi = Pick<typeof api, 'getProfile' | 'readiness' | 'assets'>;
+type DashboardApi = Pick<typeof api, 'getProfile' | 'readiness' | 'assetKeys'>;
 
 export async function loadDashboardCore(profileId: number, client: DashboardApi = api) {
-	return Promise.all([client.getProfile(profileId), client.readiness(profileId), client.assets()]);
+	return Promise.all([client.getProfile(profileId), client.readiness(profileId), client.assetKeys()]);
 }
 
 export function isCurrentDashboardLoad(
@@ -19,5 +19,5 @@ export function isCurrentDashboardLoad(
 export type DashboardCore = [
 	{ profile: ProfileOut },
 	{ readiness: Readiness },
-	{ assets: AssetSummary[] }
+	{ assets: AssetKey[] }
 ];

@@ -15,7 +15,7 @@ describe('dashboard loading', () => {
 		const client = {
 			getProfile: vi.fn(async (id: number) => ({ profile: { id } })),
 			readiness: vi.fn(async (id: number) => ({ readiness: { profile_id: id } })),
-			assets: vi.fn(async () => ({ assets: [] }))
+			assetKeys: vi.fn(async () => ({ assets: [] }))
 		};
 
 		const result = await loadDashboardCore(12, client as never);

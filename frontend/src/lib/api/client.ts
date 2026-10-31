@@ -1,5 +1,6 @@
 import type {
 	AssetPage,
+	AssetKey,
 	AssetSummary,
 	ChatHistoryItem,
 	ChatResponse,
@@ -126,6 +127,9 @@ export const api = {
 
 	assets: (filters: { asset_type?: string; max_volatility?: string; max_min_horizon_months?: number } = {}) =>
 		request<{ assets: AssetSummary[]; note: string }>('GET', `/assets${query(filters)}`),
+	assetKeys: () => request<{ assets: AssetKey[]; note: string; provider: string }>(
+		'GET', `/assets${query({ fields: 'id,symbol' })}`
+	),
 	benchmarks: () => request<{ benchmarks: MarketBenchmark[]; provider: string }>('GET', '/assets/benchmarks'),
 	refreshAssets: () => request<{ refreshed: boolean; assets: AssetSummary[]; provider: string }>('POST', '/assets/refresh'),
 	asset: (id: number) => request<AssetPage>('GET', `/assets/${id}`),
