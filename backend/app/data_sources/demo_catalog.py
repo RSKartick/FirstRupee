@@ -26,11 +26,11 @@ DATASET_AS_OF = date(2026, 10, 31)
 SERIES_START = date(2018, 1, 1)
 
 MARKET_BENCHMARKS: list[dict[str, str]] = [
-    {"symbol": "^NSEI", "label": "Nifty 50", "category": "INDEX", "fallback_price": "24350.40", "fallback_change_pct": "0.42", "fallback_1y_pct": "14.80"},
-    {"symbol": "^BSESN", "label": "BSE Sensex", "category": "INDEX", "fallback_price": "79986.80", "fallback_change_pct": "0.38", "fallback_1y_pct": "13.95"},
-    {"symbol": "^NSEBANK", "label": "Nifty Bank", "category": "INDEX", "fallback_price": "51840.20", "fallback_change_pct": "0.55", "fallback_1y_pct": "11.20"},
-    {"symbol": "GOLDBEES.NS", "label": "Gold BeES (NSE)", "category": "COMMODITY", "fallback_price": "115.23", "fallback_change_pct": "0.31", "fallback_1y_pct": "24.60"},
-    {"symbol": "SETF10GILT.NS", "label": "SBI 10Y Gilt ETF", "category": "BOND", "fallback_price": "258.85", "fallback_change_pct": "0.08", "fallback_1y_pct": "8.45"},
+    {"symbol": "^NSEI", "label": "Nifty 50", "category": "INDEX", "fallback_price": "23053.10", "fallback_change_pct": "0.51", "fallback_1y_pct": "-10.92"},
+    {"symbol": "^BSESN", "label": "BSE Sensex", "category": "INDEX", "fallback_price": "74459.53", "fallback_change_pct": "0.42", "fallback_1y_pct": "-11.78"},
+    {"symbol": "^NSEBANK", "label": "Nifty Bank", "category": "INDEX", "fallback_price": "54686.95", "fallback_change_pct": "-0.41", "fallback_1y_pct": "-5.76"},
+    {"symbol": "GOLDBEES.NS", "label": "Gold BeES (NSE)", "category": "COMMODITY", "fallback_price": "115.23", "fallback_change_pct": "-0.98", "fallback_1y_pct": "15.60"},
+    {"symbol": "SETF10GILT.NS", "label": "SBI 10Y Gilt ETF", "category": "BOND", "fallback_price": "258.85", "fallback_change_pct": "0.00", "fallback_1y_pct": "-0.13"},
 ]
 
 ASSETS: list[dict[str, Any]] = [
@@ -595,24 +595,6 @@ def _regularise_to_business_days(raw_points: list[tuple[date, float]], end_date:
     combined_index = raw_series.index.union(bdays)
     filled = raw_series.reindex(combined_index).sort_index().ffill().bfill()
     reindexed = filled.reindex(bdays).ffill().bfill()
-
-    # If the system clock / reference date is ahead of the last live trading date, extend smoothly with tiny realistic drift
-    last_real_ts = raw_series.index[-1]
-    future_mask = reindexed.index > last_real_ts
-    if future_mask.any():
-        n_extra = int(future_mask.sum())
-        base_val = float(raw_series.iloc[-1])
-        # Compute recent daily return and vol from real data
-        tail = raw_series.iloc[-252:] if len(raw_series) >= 30 else raw_series
-        rets = tail.pct_change().dropna()
-        daily_mu = float(rets.mean()) if len(rets) > 0 else 0.0003
-        daily_sigma = float(rets.std()) if len(rets) > 1 else 0.005
-        daily_mu = max(-0.0005, min(0.0008, daily_mu))
-        daily_sigma = max(0.0002, min(0.012, daily_sigma))
-        rng = np.random.default_rng(abs(hash(str(last_real_ts))) % 100000)
-        steps = (daily_mu - 0.5 * daily_sigma**2) + daily_sigma * rng.standard_normal(n_extra)
-        proj = base_val * np.exp(np.cumsum(steps))
-        reindexed.loc[future_mask] = proj
 
     return [(ts.date(), Decimal(f"{float(val):.4f}")) for ts, val in zip(reindexed.index, reindexed.values, strict=True)]
 

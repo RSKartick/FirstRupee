@@ -104,11 +104,11 @@ def me(session: AuthSession | None = Depends(optional_session), db: Session = De
 
 @router.post("/demo/{key}", status_code=201)
 def demo(key: str, request: Request, response: Response, db: Session = Depends(database), as_of=Depends(reference_date)) -> dict[str, Any]:
-    """Creates a PRIVATE guest workspace containing a copy of a fictional demo investor. Visitors never share edits."""
+    """Creates a PRIVATE guest workspace containing a copy of a pre-configured investor scenario. Visitors never share edits."""
     _check_demo_rate_limit(request)
     if key not in DEMO_PROFILES:
-        raise NotFoundError("Demo investor not found.")
-    guest = User(email=None, display_name=f"Guest - {DEMO_PROFILES[key]['display_name']}", is_guest=True, password_hash=None)
+        raise NotFoundError("Investor scenario not found.")
+    guest = User(email=None, display_name=f"{DEMO_PROFILES[key]['display_name']}", is_guest=True, password_hash=None)
     db.add(guest)
     db.commit()
     profile = workflow.clone_demo_profile(db, guest, key, as_of)

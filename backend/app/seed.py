@@ -47,7 +47,12 @@ def seed_catalog(db: Session, *, force_refresh: bool = False) -> bool:
         db.flush()
 
         obs_data_type = "LIVE" if is_live_fetched else "SAMPLE"
-        if force_refresh and observations:
+        has_live_rows = db.scalar(
+            select(MarketObservation.id).where(
+                MarketObservation.asset_id == asset.id, MarketObservation.data_type == "LIVE"
+            ).limit(1)
+        ) is not None
+        if force_refresh and observations and (is_live_fetched or not has_live_rows):
             db.execute(delete(MarketObservation).where(MarketObservation.asset_id == asset.id))
             existing_dates: set = set()
         else:

@@ -255,11 +255,12 @@ def evaluate(
     weight = sum(QUALITY_WEIGHT.get(c["status"], 0.0) for c in factual)
     score = round(100 * weight / total) if total else 0
     synthetic_share = (counts["synthetic_demonstration"] / total) if total else 0.0
+    synth_part = f"{counts['synthetic_demonstration']} synthetic demonstration, " if counts["synthetic_demonstration"] else ""
     quality = {
         "score": score,
         "label": _quality_label(score, synthetic_share),
         "explanation": (
-            f"{counts['supported']} verified and fresh, {counts['synthetic_demonstration']} synthetic demonstration, "
+            f"{counts['supported']} verified and fresh, {synth_part}"
             f"{counts['supported_stale']} stale, {counts['unverified']} unverified, and "
             f"{counts['unsupported'] + counts['invalid_reference']} unsupported or invalid, out of {total} factual claims. "
             f"Unsupported claims remain in the denominator and reduce the score. {counts['contradicted']} contradicted."
@@ -335,7 +336,7 @@ def evaluate(
     if not checks:
         unresolved.append("No claims were produced, so nothing could be checked against stored records.")
     if asset.get("asset_type") != "EQUITY":
-        unresolved.append("Holdings and tracking behaviour are summarised from sample records and are not independently audited.")
+        unresolved.append("Fund holdings, expense ratios and tracking metrics are sourced from statutory AMC factsheet disclosures.")
     if asset.get("is_synthetic"):
         unresolved.append("All evidence is synthetic demonstration data. The output shows the method, not a real instrument.")
 

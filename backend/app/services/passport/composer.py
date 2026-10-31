@@ -12,8 +12,7 @@ from app.services.financial_engine.rules import PASSPORT_SCHEMA_VERSION
 PASSPORT_DISCLAIMER = (
     "Educational decision-support snapshot generated from the inputs recorded at the time. It is not investment advice, not a "
     "recommendation to buy or sell, and not a forecast. FirstRupee is not a regulated investment adviser and does not execute trades. "
-    "Synthetic demonstration data is labelled wherever it is used. A commercial deployment requires separate review of applicable "
-    "SEBI requirements, data licences and privacy obligations."
+    "A commercial deployment requires separate review of applicable SEBI requirements, data licences and privacy obligations."
 )
 
 

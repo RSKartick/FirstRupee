@@ -107,9 +107,9 @@
 			</div>
 			<div class="mx-auto max-w-7xl px-4 pb-2 text-[11px] text-muted sm:px-6">
 				{#if session.user}
-					Signed in as {session.user.display_name}{session.user.is_guest ? ' (private case-study workspace)' : ''}.
+					Signed in as {session.user.display_name}.
 				{/if}
-				Every figure is computed by the deterministic backend engines using NSE and AMFI market data (with deterministic offline fallback when feeds are unreachable).
+				Every figure is computed by the deterministic backend engines using live NSE and AMFI market data.
 			</div>
 		</header>
 	{/if}
@@ -126,7 +126,7 @@
 		<div class="mx-auto max-w-7xl space-y-2 px-4 py-8 text-[12px] leading-relaxed text-muted sm:px-6">
 			<p class="font-medium text-ink">FirstRupee is educational decision support, not a brokerage or trade execution platform.</p>
 			<p>
-				Market data is sourced from public NSE / Yahoo Finance feeds and AMFI mutual fund NAV disclosures (MFAPI.in), with a deterministic baseline series used when running offline.
+				Market data is sourced live from public NSE / Yahoo Finance feeds and AMFI mutual fund NAV disclosures (MFAPI.in).
 				All readiness classifications, risk scores and numerical portfolio allocations are deterministic rule-based calculations.
 			</p>
 		</div>

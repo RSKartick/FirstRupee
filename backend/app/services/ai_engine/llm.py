@@ -43,22 +43,18 @@ def extract_json_object(text: str) -> Any:
 
 
 def _call_gemini(settings: Any, api_key: str, system: str, user: str) -> tuple[httpx.Response | None, LLMResult | None, str]:
-    raw_model = (settings.llm_model or "gemini-2.5-flash").strip()
-    model = raw_model if raw_model.startswith("gemini-") else "gemini-2.5-flash"
+    raw_model = (settings.llm_model or "gemini-3.8-flash").strip()
+    model = raw_model if raw_model.startswith("gemini-") else "gemini-3.8-flash"
     base = settings.llm_base_url.rstrip("/")
     if "openai.com" in base:
         base = "https://generativelanguage.googleapis.com/v1beta"
     if base.endswith("/openai"):
         base = base[: -len("/openai")]
 
-    headers_list: list[dict[str, str]] = []
-    if api_key.startswith("AIza"):
-        headers_list.append({"x-goog-api-key": api_key, "Content-Type": "application/json"})
-    elif api_key.startswith("AQ.") or len(api_key) > 45:
-        headers_list.append({"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
-        headers_list.append({"x-goog-api-key": api_key, "Content-Type": "application/json"})
-    else:
-        headers_list.append({"x-goog-api-key": api_key, "Content-Type": "application/json"})
+    headers_list: list[dict[str, str]] = [
+        {"x-goog-api-key": api_key, "Content-Type": "application/json"},
+    ]
+    if not api_key.startswith("AIza") and not api_key.startswith("AQ."):
         headers_list.append({"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
 
     payload = {
@@ -69,9 +65,10 @@ def _call_gemini(settings: Any, api_key: str, system: str, user: str) -> tuple[h
             "responseMimeType": "application/json",
         },
     }
-    models_to_try = [model]
-    if model != "gemini-2.0-flash":
-        models_to_try.append("gemini-2.0-flash")
+    models_to_try: list[str] = []
+    for candidate in (model, "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"):
+        if candidate not in models_to_try:
+            models_to_try.append(candidate)
 
     response: httpx.Response | None = None
     used_model = model
@@ -82,6 +79,8 @@ def _call_gemini(settings: Any, api_key: str, system: str, user: str) -> tuple[h
                     used_model = candidate_model
                     url = f"{base}/models/{candidate_model}:generateContent"
                     response = client.post(url, headers=hdrs, json=payload)
+                    if response.status_code < 400:
+                        break
                     if response.status_code not in (401, 403, 404):
                         break
                 if response is not None and response.status_code < 400:

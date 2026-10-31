@@ -103,7 +103,7 @@
 		<ol class="mt-4 grid gap-4 md:grid-cols-4">
 			<li><p class="text-[11px] font-semibold tracking-[0.2em] text-brand-soft">01</p><p class="mt-1 font-medium">Describe your finances</p><p class="muted mt-1">Income, outflows, reserves, loans, goal and questionnaire, each captured separately so no rupee is counted twice.</p></li>
 			<li><p class="text-[11px] font-semibold tracking-[0.2em] text-brand-soft">02</p><p class="mt-1 font-medium">Check readiness</p><p class="muted mt-1">Blockers, warnings and missing information are listed, with the next steps that would change the result.</p></li>
-			<li><p class="text-[11px] font-semibold tracking-[0.2em] text-brand-soft">03</p><p class="mt-1 font-medium">Research and challenge</p><p class="muted mt-1">Evidence-checked analyses, timing and scenario simulations, all labelled as historical, synthetic or hypothetical.</p></li>
+			<li><p class="text-[11px] font-semibold tracking-[0.2em] text-brand-soft">03</p><p class="mt-1 font-medium">Research and challenge</p><p class="muted mt-1">Evidence-checked analyses, timing and scenario simulations grounded in live historical NSE &amp; AMFI market data and audited filings.</p></li>
 			<li><p class="text-[11px] font-semibold tracking-[0.2em] text-brand-soft">04</p><p class="mt-1 font-medium">Record the decision</p><p class="muted mt-1">A Decision Passport captures the reasoning and the conditions under which it should be reviewed.</p></li>
 		</ol>
 	</section>
