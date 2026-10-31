@@ -12,7 +12,7 @@ from app.api.deps import csrf_protected, current_user, database, reference_date
 from app.core.errors import NotFoundError
 from app.models.tables import User
 from app.repositories import owned as repo
-from app.schemas.analysis import ChatRequest, PassportRequest, ResearchRequest, SimulationRequest, TimingRequest
+from app.schemas.analysis import ChatRequest, PassportRequest, ProfileRef, ResearchRequest, SimulationRequest, TimingRequest
 from app.services import workflow
 
 readiness_router = APIRouter(prefix="/readiness", tags=["readiness"])
@@ -24,10 +24,9 @@ assistant_router = APIRouter(prefix="/assistant", tags=["assistant"])
 
 
 @readiness_router.post("/analyze", dependencies=[Depends(csrf_protected)])
-def analyze_readiness(body: dict[str, Any], user: User = Depends(current_user), db: Session = Depends(database),
+def analyze_readiness(body: ProfileRef, user: User = Depends(current_user), db: Session = Depends(database),
                       as_of: date = Depends(reference_date)) -> dict[str, Any]:
-    profile_id = int(body.get("profile_id", 0))
-    row = workflow.get_owned_profile(db, user, profile_id)
+    row = workflow.get_owned_profile(db, user, body.profile_id)
     return {"readiness": workflow.readiness_for(db, row, as_of)}
 
 
@@ -94,9 +93,10 @@ def generate_passport(body: PassportRequest, user: User = Depends(current_user),
 
 
 @passport_router.get("/profile/{profile_id}")
-def list_passports(profile_id: int, user: User = Depends(current_user), db: Session = Depends(database)) -> dict[str, Any]:
+def list_passports(profile_id: int, limit: int = 50, user: User = Depends(current_user), db: Session = Depends(database)) -> dict[str, Any]:
     row = workflow.get_owned_profile(db, user, profile_id)
-    return {"passports": [workflow.passport_summary(p) for p in repo.list_passports(db, user.id, row.id)]}
+    bounded_limit = max(1, min(limit, 200))
+    return {"passports": [workflow.passport_summary(p) for p in repo.list_passports(db, user.id, row.id, limit=bounded_limit)]}
 
 
 @passport_router.get("/{passport_id}")

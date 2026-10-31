@@ -6,6 +6,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
+from app.services.ai_engine.guardrails import sanitize_prose
 from app.services.financial_engine.rules import PASSPORT_SCHEMA_VERSION
 
 PASSPORT_DISCLAIMER = (
@@ -99,7 +100,7 @@ def compose(
     if research:
         missing += research["evaluation"]["missing_data"]
     if simulation:
-        missing += [item for item in simulation["limitations"] if "excluded" in item.lower() or "not" in item.lower()]
+        missing += list(simulation["limitations"])
     if simulation_skipped_reason:
         missing.append(simulation_skipped_reason)
     missing = _dedupe_strs(missing)
@@ -157,8 +158,8 @@ def compose(
         "research": None if research is None else {
             "analysis_id": research.get("analysis_id"),
             "asset": research["asset"],
-            "analyst_thesis": research["analyst"]["thesis"],
-            "counter_thesis": research["devil"]["counter_thesis"],
+            "analyst_thesis": sanitize_prose(research["analyst"]["thesis"]),
+            "counter_thesis": sanitize_prose(research["devil"]["counter_thesis"]),
             "no_material_negative_finding": research["devil"]["no_material_negative_finding"],
             "evaluator_status": research["evaluation"]["status"],
             "evidence_quality": research["evaluation"]["evidence_quality"],

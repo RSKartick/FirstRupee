@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.common import Money, Pct
 
@@ -69,3 +69,9 @@ class ChatRequest(BaseModel):
 
     profile_id: int | None = Field(default=None, gt=0)
     messages: list[ChatMessage] = Field(min_length=1, max_length=20)
+
+    @model_validator(mode="after")
+    def _last_message_must_be_user(self) -> ChatRequest:
+        if not self.messages or self.messages[-1].role != "user":
+            raise ValueError("The final message in the request must have role 'user'.")
+        return self

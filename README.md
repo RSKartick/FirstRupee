@@ -175,7 +175,7 @@ Each engine has a rule-set version that is stored with every result:
 
 | Engine | Version | Purpose |
 | --- | --- | --- |
-| Readiness | `readiness-rules-v2.0` | NOT_READY / PREPARATION / READY_TO_EXPLORE with reasons, inputs and next steps |
+| Readiness | `readiness-rules-v2.1` | NOT_READY / PREPARATION / READY_TO_EXPLORE with reasons, inputs, next steps and portfolio recommendations |
 | Timing | `timing-rules-v2.0` | Three clocks and an explicit precedence list (R1-R9) |
 | Simulator | `simulator-v2.0` | Historical and hypothetical scenarios, cash-flow-neutral metrics |
 | Evaluator | `evaluator-rules-v2.0` | Claim-by-claim verification and deterministic material-risk rules |
@@ -195,20 +195,23 @@ Key definitions used throughout:
 
 ## Market data
 
-The demonstration uses a fictional catalogue with synthetic, fixed-seed price series and synthetic evidence records. Every record
-is labelled `SYNTHETIC`, and every page shows that label. No record has an invented source URL. The data boundary is
-`app/data_sources/provider.py`. A real provider (for example an AMFI NAV feed or a licensed equity feed) would implement the same
-interface and write `LIVE` rows. Before any real provider is added, verify Indian coverage, licence terms, usage limits, historical
-depth and attribution. Scraping protected exchange data or redistributing licensed data is not permitted.
+The catalogue covers 8 real Indian exchange-traded securities and AMFI-registered direct mutual funds (`TCS.NS`, `TATAPOWER.NS`,
+`UTI-NIFTY50`, `PPFAS-FLEXI`, `NIPPON-LIQUID`, `SETF10GILT.NS`, `GOLDBEES.NS`, and `NIFTYBEES.NS`) plus 5 Indian market benchmarks.
+Historical daily prices and NAVs are fetched from public feeds (Yahoo Finance v8 chart API for NSE equities/ETFs and `api.mfapi.in`
+for AMFI mutual fund schemes), with a deterministic baseline series used when running in an offline or sandboxed test environment
+(`FIRSTRUPEE_OFFLINE_SEED=1`). Evidence records are backed by audited annual filings and statutory fund factsheets with official
+issuer URLs (`source_url`) and `VERIFIED` provenance status. The data boundary is `app/data_sources/provider.py`.
 
 ## Known limitations
 
 - The Playwright browser end-to-end suite is **not included**. Verification covers the backend API, the frontend unit tests, the type
   check, the production build and the live API journey script. Browser-level testing remains to be added.
 - Dividends, corporate actions, fees, taxes and inflation are excluded from simulations (stated on every run).
-- The language-model path is implemented and tested against mocked responses. It has not been run against a live provider here.
+- The language-model path supports Google AI Studio (`GEMINI_API_KEY`) and OpenAI-compatible providers (`LLM_API_KEY`) with deterministic
+  guardrails that reject prescriptive buy/sell advice and fall back to rule-based outputs.
 - Docker Compose files are written but were not executed in this environment.
-- Live market-data adapters are not implemented. Only the synthetic demonstration dataset is available.
+- When running offline (`FIRSTRUPEE_OFFLINE_SEED=1` or when Yahoo Finance / MFAPI.in are unreachable), seeding falls back to a
+  deterministic baseline series and tags observations as `SAMPLE` rather than `LIVE`.
 - No authentication hardening beyond the measures above (no MFA, lockout or email verification).
 - The readiness and timing rules are educational heuristics, not validated psychometric or financial ratings.
 - A commercial deployment requires separate review of applicable SEBI requirements, data licences and privacy obligations.

@@ -51,12 +51,21 @@ def _call_gemini(settings: Any, api_key: str, system: str, user: str) -> tuple[h
     if base.endswith("/openai"):
         base = base[: -len("/openai")]
 
-    headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
+    headers_list: list[dict[str, str]] = []
+    if api_key.startswith("AIza"):
+        headers_list.append({"x-goog-api-key": api_key, "Content-Type": "application/json"})
+    elif api_key.startswith("AQ.") or len(api_key) > 45:
+        headers_list.append({"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
+        headers_list.append({"x-goog-api-key": api_key, "Content-Type": "application/json"})
+    else:
+        headers_list.append({"x-goog-api-key": api_key, "Content-Type": "application/json"})
+        headers_list.append({"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
+
     payload = {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": [{"text": user}]}],
         "generationConfig": {
-            "temperature": 0.1,
+            "temperature": 0.2,
             "responseMimeType": "application/json",
         },
     }
@@ -68,11 +77,14 @@ def _call_gemini(settings: Any, api_key: str, system: str, user: str) -> tuple[h
     used_model = model
     try:
         with httpx.Client(timeout=settings.llm_timeout_seconds) as client:
-            for candidate_model in models_to_try:
-                used_model = candidate_model
-                url = f"{base}/models/{candidate_model}:generateContent"
-                response = client.post(url, headers=headers, json=payload)
-                if response.status_code != 404:
+            for hdrs in headers_list:
+                for candidate_model in models_to_try:
+                    used_model = candidate_model
+                    url = f"{base}/models/{candidate_model}:generateContent"
+                    response = client.post(url, headers=hdrs, json=payload)
+                    if response.status_code not in (401, 403, 404):
+                        break
+                if response is not None and response.status_code < 400:
                     break
     except httpx.TimeoutException:
         logger.warning("Gemini request timed out after %.1fs", settings.llm_timeout_seconds)

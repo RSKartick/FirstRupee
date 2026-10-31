@@ -271,3 +271,99 @@ def test_priya_readiness_is_used_for_evaluation_context():
     from app.services.financial_engine.readiness import assess_readiness
     r = assess_readiness(priya(), AS_OF)
     assert r["status"] == "READY_TO_EXPLORE"
+
+
+@pytest.mark.parametrize(
+    "unsafe_output",
+    [
+        "BUY TCS NOW! This stock is guaranteed to multiply.",
+        "You should invest in TCS immediately.",
+        "This fund offers guaranteed returns of 30% a year.",
+        "The stock price will reach 5000 next quarter.",
+        "This equity will multiply 10x with risk-free profit.",
+    ],
+)
+def test_assistant_blocks_prescriptive_buy_sell_or_guarantee_outputs(fake_llm, unsafe_output):
+    from app.services.ai_engine import assistant
+    from app.services.financial_engine.readiness import assess_readiness
+
+    monkeypatch_settings = FakeSettings()
+    assistant_get_settings_orig = assistant.get_settings
+    assistant.get_settings = lambda: monkeypatch_settings
+    try:
+        body = f'{{"answer": "{unsafe_output}"}}'
+        fake_llm(lambda req: completion(body))
+        ctx = {"readiness": assess_readiness(priya(), AS_OF), "investor_profile": {"display_name": "Priya", "monthly_income": "80000"}}
+        res = assistant.answer([{"role": "user", "content": "Am I ready to invest?"}], ctx)
+        assert res["mode"] == "DETERMINISTIC"
+        assert "UNSAFE_OUTPUT" in " ".join(res["guardrails"])
+        assert unsafe_output not in res["answer"]
+    finally:
+        assistant.get_settings = assistant_get_settings_orig
+
+
+def test_evaluator_and_passport_reject_advice_prose_in_thesis_and_counter_thesis():
+    from app.services.passport.composer import compose
+    from app.services.financial_engine.readiness import assess_readiness
+    from app.services.financial_engine.timing import assess_timing
+
+    p = priya()
+    readiness = assess_readiness(p, AS_OF)
+    timing = assess_timing(p, readiness, None, AS_OF)
+    bad_analyst = {
+        "overview": "Overview.",
+        "thesis": "BUY TCS NOW! Guaranteed returns of 30%.",
+        "developments": [],
+        "claims": [fact("K1", text="Revenue")],
+    }
+    bad_devil = {
+        "counter_thesis": "You should sell now before it crashes.",
+        "no_material_negative_finding": False,
+        "missing_information": [],
+        "claims": [],
+    }
+    ev_rec = record("K1", status="VERIFIED", pub=date(2025, 5, 20))
+    evaluation = evaluate(asset={**ASSET, "is_synthetic": False}, records=[ev_rec], analyst=bad_analyst, devil=bad_devil, readiness=readiness, as_of=AS_OF)
+    assert evaluation["status"] == "INSUFFICIENT_EVIDENCE"
+    assert len(evaluation["advice_violations"]) >= 2
+    assert any("Guardrail violation" in item for item in evaluation["missing_data"])
+
+    research_bundle = {
+        "analysis_id": 1,
+        "asset": {**ASSET, "is_synthetic": False},
+        "analyst": bad_analyst,
+        "devil": bad_devil,
+        "evaluation": evaluation,
+        "evidence": [{
+            "evidence_key": "K1",
+            "title": "Record K1",
+            "source_type": "ANNUAL_REPORT",
+            "verification_status": "VERIFIED",
+            "publication_date": "2025-05-20",
+            "period": "FY2025",
+        }],
+        "engine": {"analyst_mode": "LLM", "devil_mode": "LLM", "prompt_version": "prompts-v2.0"},
+    }
+    snap = compose(
+        profile={"goal_name": "Wealth", "goal_amount": "2500000"},
+        readiness=readiness,
+        timing=timing,
+        research=research_bundle,
+        simulation=None,
+        simulation_skipped_reason="None",
+        as_of=AS_OF,
+    )
+    assert "BUY TCS NOW" not in snap["research"]["analyst_thesis"]
+    assert "Redacted by FirstRupee guardrail" in snap["research"]["analyst_thesis"]
+    assert "Redacted by FirstRupee guardrail" in snap["research"]["counter_thesis"]
+
+
+def test_assistant_glossary_uses_word_boundaries():
+    from app.services.ai_engine import assistant
+    from app.services.financial_engine.readiness import assess_readiness
+
+    ctx = {"readiness": assess_readiness(priya(), AS_OF), "investor_profile": {"display_name": "Priya", "monthly_income": "80000"}}
+    res_nav = assistant.answer([{"role": "user", "content": "What is NAV?"}], ctx)
+    assert "net asset value" in res_nav["answer"].lower()
+    res_navigate = assistant.answer([{"role": "user", "content": "How do I navigate the dashboard?"}], ctx)
+    assert "net asset value" not in res_navigate["answer"].lower()

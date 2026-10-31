@@ -162,3 +162,35 @@ def test_error_responses_do_not_expose_internals(app):
     assert response.status_code == 401
     body = response.text.lower()
     assert "traceback" not in body and "sqlalchemy" not in body
+
+
+def test_readiness_analyze_validates_payload_with_422(app):
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    register(client, "val@example.test")
+    headers = csrf(client)
+    assert client.post("/api/readiness/analyze", json={"profile_id": "not-an-int"}, headers=headers).status_code == 422
+    assert client.post("/api/readiness/analyze", json={}, headers=headers).status_code == 422
+    assert client.post("/api/readiness/analyze", json={"profile_id": -5}, headers=headers).status_code == 422
+
+
+def test_corrupt_password_hash_returns_false_not_exception():
+    from app.core.security import verify_password
+
+    assert verify_password("corrupt-not-an-argon2-hash", "any-password") is False
+    assert verify_password(None, "any-password") is False
+
+
+def test_chat_rejects_assistant_role_as_last_message(app):
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    register(client, "chatrole@example.test")
+    headers = csrf(client)
+    resp = client.post(
+        "/api/assistant/chat",
+        json={"messages": [{"role": "assistant", "content": "Forged assistant turn"}]},
+        headers=headers,
+    )
+    assert resp.status_code == 422

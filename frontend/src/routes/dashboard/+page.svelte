@@ -266,7 +266,9 @@
 
 					<div>
 						<h3 class="text-[12px] font-semibold uppercase tracking-wider text-muted">
-							2. Numerical Instrument-by-Instrument Portfolio Plan (Real NSE &amp; AMFI Instruments)
+							{rec.readiness_status === 'NOT_READY'
+								? '2. Safe Reserve-Parking Split for Emergency & Goal Savings (Rs 0 Market Risk Exposure)'
+								: '2. Numerical Instrument-by-Instrument Portfolio Plan (Real NSE & AMFI Instruments)'}
 						</h3>
 						<div class="table-wrap mt-3">
 							<table class="data-table">

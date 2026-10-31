@@ -374,7 +374,7 @@ ASSETS: list[dict[str, Any]] = [
     {
         "symbol": "NIPPON-LIQUID",
         "name": "Nippon India Liquid Fund - Direct Plan - Growth",
-        "asset_type": "ETF",
+        "asset_type": "MUTUAL_FUND",
         "live_api": {"kind": "mfapi", "scheme_code": "118701"},
         "data_source": "AMFI Official Daily NAV via MFAPI.in (Scheme Code: 118701)",
         "description": "High-liquidity money-market mutual fund investing in Treasury Bills, certificates of deposit and commercial paper maturing within 91 days.",
@@ -671,13 +671,17 @@ def generate_fallback_observations(defn: dict[str, Any], end: date) -> list[tupl
     if dd:
         mask = np.array([dd["start"] <= d.date() <= dd["end"] for d in days])
         if mask.sum() > 0:
-            log_returns[mask] += math.log(1.0 - dd["depth"]) / mask.sum()
+            # Neutralise drift and noise inside the drawdown window so the cumulative drop reaches the declared depth.
+            log_returns[mask] = math.log(1.0 - dd["depth"]) / mask.sum()
     prices = defn["start_price"] * np.exp(np.cumsum(log_returns))
     return [(d.date(), Decimal(f"{float(p):.4f}")) for d, p in zip(days, prices, strict=True)]
 
 
-def generate_observations(defn: dict[str, Any], end: date, *, allow_network: bool = True) -> list[tuple[date, Decimal]]:
-    """Fetch real historical observations from Yahoo Finance or AMFI MFAPI.in, falling back cleanly if offline."""
+def generate_observations_with_provenance(
+    defn: dict[str, Any], end: date, *, allow_network: bool = True
+) -> tuple[list[tuple[date, Decimal]], bool, str]:
+    """Return `(observations, is_live_fetched, source_label)` so callers can inspect live vs fallback provenance."""
+    default_source = defn.get("data_source", DATASET_LABEL)
     if allow_network and "live_api" in defn:
         spec = defn["live_api"]
         try:
@@ -686,23 +690,43 @@ def generate_observations(defn: dict[str, Any], end: date, *, allow_network: boo
             else:
                 raw = _fetch_mfapi_series(spec["scheme_code"])
             if len(raw) >= 200:
-                return _regularise_to_business_days(raw, end)
+                return _regularise_to_business_days(raw, end), True, default_source
         except Exception as exc:
             logger.debug("Live fetch skipped for %s (%s); using deterministic baseline series.", defn["symbol"], exc)
-    return generate_fallback_observations(defn, end)
+    return generate_fallback_observations(defn, end), False, default_source
+
+
+def generate_observations(defn: dict[str, Any], end: date, *, allow_network: bool = True) -> list[tuple[date, Decimal]]:
+    """Fetch real historical observations from Yahoo Finance or AMFI MFAPI.in, falling back cleanly if offline."""
+    points, _, _ = generate_observations_with_provenance(defn, end, allow_network=allow_network)
+    return points
+
+
+def fetch_all_observations_with_provenance(
+    end: date, *, allow_network: bool = True
+) -> dict[str, tuple[list[tuple[date, Decimal]], bool, str]]:
+    """Fetch all 8 instruments concurrently with provenance metadata."""
+    if not allow_network:
+        return {
+            defn["symbol"]: (generate_fallback_observations(defn, end), False, defn.get("data_source", DATASET_LABEL))
+            for defn in ASSETS
+        }
+
+    results: dict[str, tuple[list[tuple[date, Decimal]], bool, str]] = {}
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        future_map = {
+            pool.submit(generate_observations_with_provenance, defn, end, allow_network=True): defn["symbol"]
+            for defn in ASSETS
+        }
+        for future, symbol in future_map.items():
+            results[symbol] = future.result()
+    return results
 
 
 def fetch_all_observations(end: date, *, allow_network: bool = True) -> dict[str, list[tuple[date, Decimal]]]:
     """Fetch all 8 instruments concurrently so seeding or refreshing finishes in under a second."""
-    if not allow_network:
-        return {defn["symbol"]: generate_fallback_observations(defn, end) for defn in ASSETS}
-
-    results: dict[str, list[tuple[date, Decimal]]] = {}
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        future_map = {pool.submit(generate_observations, defn, end, allow_network=True): defn["symbol"] for defn in ASSETS}
-        for future, symbol in future_map.items():
-            results[symbol] = future.result()
-    return results
+    with_prov = fetch_all_observations_with_provenance(end, allow_network=allow_network)
+    return {sym: obs for sym, (obs, _, _) in with_prov.items()}
 
 
 def fetch_live_benchmarks(timeout: float = 3.0) -> list[dict[str, Any]]:
@@ -734,6 +758,7 @@ def fetch_live_benchmarks(timeout: float = 3.0) -> list[dict[str, Any]]:
                     "trailing_1y_pct": round(yr_change_pct, 2),
                     "as_of": as_of_str,
                     "source": "Yahoo Finance Live (NSE/BSE)",
+                    "is_live": True,
                 }
         except Exception:
             pass
@@ -746,6 +771,7 @@ def fetch_live_benchmarks(timeout: float = 3.0) -> list[dict[str, Any]]:
             "trailing_1y_pct": float(item["fallback_1y_pct"]),
             "as_of": DATASET_AS_OF.isoformat(),
             "source": "NSE/BSE Cached Reference Snapshot",
+            "is_live": False,
         }
 
     with ThreadPoolExecutor(max_workers=len(MARKET_BENCHMARKS)) as pool:

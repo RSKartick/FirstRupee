@@ -7,11 +7,13 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import secrets
 
 from argon2 import PasswordHasher
-from argon2.exceptions import Argon2Error
+from argon2.exceptions import Argon2Error, InvalidHashError
 
+logger = logging.getLogger("firstrupee.security")
 # argon2-cffi's default parameters use the Argon2id variant.
 _hasher = PasswordHasher()
 
@@ -25,7 +27,10 @@ def verify_password(password_hash: str | None, password: str) -> bool:
         return False
     try:
         return _hasher.verify(password_hash, password)
-    except Argon2Error:
+    except InvalidHashError:
+        logger.warning("Stored password hash is malformed or uses an unsupported format.")
+        return False
+    except (Argon2Error, ValueError):
         return False
 
 

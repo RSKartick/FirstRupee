@@ -150,6 +150,8 @@ def xirr(flows: list[tuple[date, float]]) -> float | None:
         return None
     t0 = min(d for d, _ in flows)
     times = np.array([(d - t0).days / 365.0 for d, _ in flows])
+    if float(np.max(times)) <= 0:
+        return None
     amounts = np.array([a for _, a in flows])
 
     def npv(rate: float) -> float:
@@ -157,6 +159,11 @@ def xirr(flows: list[tuple[date, float]]) -> float | None:
 
     low, high = -0.9999, 10.0
     f_low, f_high = npv(low), npv(high)
+    for candidate in (25.0, 50.0, 100.0):
+        if f_low * f_high <= 0:
+            break
+        high = candidate
+        f_high = npv(high)
     if f_low * f_high > 0:
         return None
     for _ in range(300):
@@ -232,10 +239,13 @@ def run_path(prices: np.ndarray, dates: list[date], plan: Plan) -> dict[str, Any
 
         deploy_contrib = 0.0
         if contrib_cash > 1e-9:
+            min_k = max(1, plan.delay) if plan.policy == "DELAYED_START" else 1
             if plan.frequency == "MONTHLY":
-                deploy_contrib = contrib_cash if k >= 1 else 0.0
-            elif k >= 3 and k % 3 == 0:
-                deploy_contrib = contrib_cash
+                if plan.policy != "DELAYED_START" or plan.delay < n:
+                    deploy_contrib = contrib_cash if k >= min_k else 0.0
+            elif k >= max(3, min_k) and k % 3 == 0:
+                if plan.policy != "DELAYED_START" or plan.delay < n:
+                    deploy_contrib = contrib_cash
         if deploy_contrib > 1e-9:
             units += deploy_contrib / price
             contrib_cash -= deploy_contrib
@@ -255,7 +265,12 @@ def run_path(prices: np.ndarray, dates: list[date], plan: Plan) -> dict[str, Any
     returns = nav_arr[1:] / nav_arr[:-1] - 1.0
     volatility = float(np.std(returns, ddof=1) * math.sqrt(12) * 100) if len(returns) >= 2 else None
     drawdown = float(np.min(nav_arr / np.maximum.accumulate(nav_arr) - 1.0) * 100)
-    xirr_flows = [(dates[k], -amount) for k, _, amount in inflows] + [(dates[n], ending)]
+    if plan.policy == "STAGED_INITIAL" and plan.initial > 0:
+        staged_trades = [(t["date"], -float(t["amount"])) for t in trades if t["source"] == "STAGED_CAPITAL"]
+        monthly_flows = [(dates[k], -amount) for k, src, amount in inflows if src != "STAGED_CAPITAL"]
+        xirr_flows = staged_trades + monthly_flows + [(dates[n], ending - staged)]
+    else:
+        xirr_flows = [(dates[k], -amount) for k, _, amount in inflows] + [(dates[n], ending)]
     mwr = xirr(xirr_flows) if inflows else None
 
     return {
@@ -409,9 +424,9 @@ def run_simulation(
     ]
     if policy == "DELAYED_START":
         if delay_months >= duration_months:
-            assumptions.append("The delay reaches the horizon, so the starting capital stays in cash for the whole window.")
+            assumptions.append("The delay reaches the horizon, so starting capital and monthly contributions stay in cash for the whole window.")
         else:
-            assumptions.append(f"Starting capital stays in cash for {delay_months} month(s), then is invested in one step.")
+            assumptions.append(f"Starting capital and any monthly contributions wait in cash for {delay_months} month(s), then deploy into the market.")
     if policy == "STAGED_INITIAL":
         assumptions.append("Starting capital is deployed in equal monthly tranches across the window.")
     if market_path != "HISTORICAL":

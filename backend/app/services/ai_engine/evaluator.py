@@ -18,6 +18,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable
 
+from app.services.ai_engine.guardrails import scan_research_prose
 from app.services.financial_engine.money import D
 from app.services.financial_engine.rules import EVALUATOR_VERSION
 
@@ -231,6 +232,7 @@ def evaluate(
     as_of: date,
 ) -> dict[str, Any]:
     by_key = {r.key: r for r in records}
+    advice_violations = scan_research_prose(analyst, devil)
     checks: list[dict[str, Any]] = []
     if analyst:
         checks += [_check_claim("ANALYST", c, by_key, asset["id"], as_of) for c in analyst.get("claims", [])]
@@ -296,14 +298,18 @@ def evaluate(
         status = "FINANCIAL_CONSTRAINTS_IDENTIFIED"
     elif horizon is not None and horizon < asset["min_horizon_months"]:
         status = "GOAL_HORIZON_MISMATCH"
-    elif analyst is None or devil is None or usable_support == 0 or counts["contradicted"] > 0 or unsupported_share > 0.25:
+    elif analyst is None or devil is None or usable_support == 0 or counts["contradicted"] > 0 or unsupported_share > 0.25 or advice_violations:
         status = "INSUFFICIENT_EVIDENCE"
     elif risks:
         status = "MATERIAL_RISKS_IDENTIFIED"
     else:
         status = "FURTHER_RESEARCH_REQUIRED"
 
-    missing: list[str] = list((devil or {}).get("missing_information", []))
+    missing: list[str] = [s for s in (devil or {}).get("missing_information", []) if not scan_research_prose(None, {"missing_information": [s]})]
+    for violation in advice_violations:
+        missing.append(
+            f"Guardrail violation in {violation['field']} ({violation['category']}): '{violation['matched']}' was rejected as prescriptive advice."
+        )
     if counts["unsupported"] or counts["invalid_reference"]:
         missing.append(f"{counts['unsupported'] + counts['invalid_reference']} claim(s) lack valid evidence and were not relied on.")
     if conflicts:
@@ -337,6 +343,7 @@ def evaluate(
         "evaluator_version": EVALUATOR_VERSION,
         "status": status,
         "claim_checks": checks,
+        "advice_violations": advice_violations,
         "counts": counts,
         "evidence_quality": quality,
         "conflicts": conflicts,

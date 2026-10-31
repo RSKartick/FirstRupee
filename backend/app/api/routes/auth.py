@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from collections import deque
 from datetime import timedelta
+import time
 from typing import Any
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import SESSION_COOKIE, csrf_protected, current_session, database, optional_session, reference_date
@@ -18,6 +20,27 @@ from app.schemas.auth import LoginIn, RegisterIn
 from app.services import workflow
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+DEMO_RATE_LIMIT_PER_MINUTE = 30
+_DEMO_RATE_WINDOW_SECONDS = 60.0
+_demo_hits_by_ip: dict[str, deque[float]] = {}
+
+
+def reset_demo_rate_limiter() -> None:
+    _demo_hits_by_ip.clear()
+
+
+def _check_demo_rate_limit(request: Request) -> None:
+    client_ip = (request.client.host if request.client else None) or "unknown"
+    now = time.monotonic()
+    bucket = _demo_hits_by_ip.setdefault(client_ip, deque())
+    while bucket and (now - bucket[0]) > _DEMO_RATE_WINDOW_SECONDS:
+        bucket.popleft()
+    if len(bucket) >= DEMO_RATE_LIMIT_PER_MINUTE:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many demo workspaces created from this IP address. Please wait a minute and try again.",
+        )
+    bucket.append(now)
 
 
 def _user_out(user: User) -> dict[str, Any]:
@@ -80,11 +103,12 @@ def me(session: AuthSession | None = Depends(optional_session), db: Session = De
 
 
 @router.post("/demo/{key}", status_code=201)
-def demo(key: str, response: Response, db: Session = Depends(database), as_of=Depends(reference_date)) -> dict[str, Any]:
+def demo(key: str, request: Request, response: Response, db: Session = Depends(database), as_of=Depends(reference_date)) -> dict[str, Any]:
     """Creates a PRIVATE guest workspace containing a copy of a fictional demo investor. Visitors never share edits."""
+    _check_demo_rate_limit(request)
     if key not in DEMO_PROFILES:
         raise NotFoundError("Demo investor not found.")
-    guest = User(email=None, display_name=f"Guest · {DEMO_PROFILES[key]['display_name']}", is_guest=True, password_hash=None)
+    guest = User(email=None, display_name=f"Guest - {DEMO_PROFILES[key]['display_name']}", is_guest=True, password_hash=None)
     db.add(guest)
     db.commit()
     profile = workflow.clone_demo_profile(db, guest, key, as_of)

@@ -43,8 +43,8 @@ class ReadinessThresholds:
     high_debt_to_annual_income: Decimal = Decimal("1.0")
     ready_capacity_min: int = 55
     ready_tolerance_min: int = 40
-    capacity_low_max: int = 40
-    capacity_high_min: int = 65
+    capacity_low_max: int = 55
+    capacity_high_min: int = 70
     tolerance_low_max: int = 40
     tolerance_high_min: int = 70
     cap_loss_affects_essentials: int = 30

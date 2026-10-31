@@ -8,7 +8,7 @@ from datetime import date
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from app.core.clock import utc_today, utcnow
+from app.core.clock import ist_today, utcnow
 from app.core.security import token_digest, tokens_equal
 from app.db.session import get_db
 from app.models.tables import AuthSession, User
@@ -23,8 +23,8 @@ def database() -> Iterator[Session]:
 
 
 def reference_date() -> date:
-    """The single source of "today". Tests override this dependency to pin the reference date."""
-    return utc_today()
+    """The single source of "today" (IST calendar date). Tests override this dependency to pin the reference date."""
+    return ist_today()
 
 
 def optional_session(request: Request, db: Session = Depends(database)) -> AuthSession | None:

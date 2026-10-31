@@ -482,10 +482,16 @@ def assistant_for(db: Session, user: User, profile_id: int | None, messages: lis
         for pp in repo.list_passports(db, user.id, row.id)[:5]:
             context["passports"].append(passport_summary(pp))
 
-    stored_history = repo.list_chat_messages(db, user.id, limit=30)
+    if not messages or messages[-1].get("role") != "user":
+        raise ValidationProblem("The final message in the request must have role 'user'.")
     latest_user_msg = messages[-1]["content"].strip()
+    if not latest_user_msg:
+        raise ValidationProblem("The user message cannot be empty.")
+
+    stored_history = repo.list_chat_messages(db, user.id, limit=30)
     full_conversation = [{"role": m.role, "content": m.content} for m in stored_history]
-    full_conversation.append({"role": "user", "content": latest_user_msg})
+    if not (full_conversation and full_conversation[-1]["role"] == "user" and full_conversation[-1]["content"] == latest_user_msg):
+        full_conversation.append({"role": "user", "content": latest_user_msg})
 
     reply = assistant_engine.answer(full_conversation, context)
 

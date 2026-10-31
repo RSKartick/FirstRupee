@@ -69,11 +69,12 @@ def get_passport(db: Session, user_id: int, passport_id: int) -> DecisionPasspor
     return db.scalar(select(DecisionPassportRow).where(DecisionPassportRow.id == passport_id, DecisionPassportRow.user_id == user_id))
 
 
-def list_passports(db: Session, user_id: int, profile_id: int) -> list[DecisionPassportRow]:
+def list_passports(db: Session, user_id: int, profile_id: int, limit: int = 50) -> list[DecisionPassportRow]:
     return list(db.scalars(
         select(DecisionPassportRow)
         .where(DecisionPassportRow.user_id == user_id, DecisionPassportRow.profile_id == profile_id)
         .order_by(DecisionPassportRow.id.desc())
+        .limit(limit)
     ).all())
 
 

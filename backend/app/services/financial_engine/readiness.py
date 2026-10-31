@@ -36,7 +36,7 @@ STABILITY_SCORE = {"VERY_STABLE": 90, "SOMEWHAT_STABLE": 60, "IRREGULAR": 25}
 STATED_HORIZON_MONTHS = {"UNDER_1_YEAR": 6, "ONE_TO_THREE_YEARS": 24, "THREE_TO_SEVEN_YEARS": 60, "OVER_SEVEN_YEARS": 96}
 
 DISCLAIMER = (
-    "Rule-based educational guardrail (readiness-rules-v2.0). It is not a validated psychometric score, not a regulatory "
+    f"Rule-based educational guardrail ({READINESS_RULE_VERSION}). It is not a validated psychometric score, not a regulatory "
     "assessment and not a recommendation to buy or sell any investment. Thresholds are documented in rules.py."
 )
 
@@ -785,17 +785,17 @@ def build_recommendations(
     # 3. Determine portfolio weights and target rupee budget
     horizon_m = horizon_for_capacity if horizon_for_capacity is not None else 36
     if status == "NOT_READY":
-        # Safe parking allocation for their monthly savings / reserve building
-        safe_budget = pos_surplus
+        # Safe reserve-parking split for emergency + goal reserve top-up (recommended_market_deployment_inr is 0.00)
+        safe_budget = emerg_alloc + goal_alloc
         weights = [
-            ("NIPPON-LIQUID", "Nippon India Liquid Fund - Direct Plan - Growth", "ETF", "Emergency & Goal Safety Parking", 80, "PARK_SAFELY_UNTIL_READY"),
+            ("NIPPON-LIQUID", "Nippon India Liquid Fund - Direct Plan - Growth", "MUTUAL_FUND", "Emergency & Goal Safety Parking", 80, "PARK_SAFELY_UNTIL_READY"),
             ("SETF10GILT.NS", "SBI Nifty 10 yr Benchmark G-Sec ETF", "FIXED_INCOME", "Sovereign Bond Buffer", 20, "PARK_SAFELY_UNTIL_READY"),
         ]
         equity_pct, fixed_pct, gold_pct = 0, 100, 0
     elif status == "PREPARATION" or horizon_m < 36 or capacity_band == "LOW" or tolerance_band == "LOW":
         safe_budget = market_deploy if market_deploy > ZERO else pos_surplus
         weights = [
-            ("NIPPON-LIQUID", "Nippon India Liquid Fund - Direct Plan - Growth", "ETF", "Liquid Stability Anchor", 45, "STAGE_CAUTIOUSLY"),
+            ("NIPPON-LIQUID", "Nippon India Liquid Fund - Direct Plan - Growth", "MUTUAL_FUND", "Liquid Stability Anchor", 45, "STAGE_CAUTIOUSLY"),
             ("SETF10GILT.NS", "SBI Nifty 10 yr Benchmark G-Sec ETF", "FIXED_INCOME", "Sovereign Fixed Income", 25, "STAGE_CAUTIOUSLY"),
             ("UTI-NIFTY50", "UTI Nifty 50 Index Fund - Direct Plan - Growth", "INDEX_FUND", "Core Large-Cap Index SIP", 20, "STAGE_CAUTIOUSLY"),
             ("GOLDBEES.NS", "Nippon India ETF Gold BeES", "GOLD", "Inflation & Currency Hedge", 10, "STAGE_CAUTIOUSLY"),
@@ -933,7 +933,12 @@ def build_recommendations(
     textual_guidelines: list[str] = [
         f"Monthly Cash-Flow Rule: Out of your {fmt_inr(p.income)} take-home income, {fmt_inr(p.essential + p.nonessential + p.emi + p.other)} goes to expenses and EMIs, leaving {fmt_inr(pos_surplus)} monthly surplus.",
         f"Emergency & Goal Ring-Fencing: Direct {fmt_inr(emerg_alloc)}/month to emergency reserves and {fmt_inr(goal_alloc)}/month to goal reserves before taking market risk.",
-        f"Monthly Market Deployment: Invest {fmt_inr(market_deploy)}/month across the {len(asset_allocations)} recommended instruments shown in the table below.",
+        (
+            f"Safe Reserve Parking (NOT READY): Market equity SIP deployment is {fmt_inr(market_deploy)}/month. "
+            f"Park your {fmt_inr(emerg_alloc + goal_alloc)}/month reserve savings across the {len(asset_allocations)} safe liquid instruments below until your blockers clear."
+            if status == "NOT_READY"
+            else f"Monthly Market Deployment: Invest {fmt_inr(market_deploy)}/month across the {len(asset_allocations)} recommended instruments shown in the table below."
+        ),
     ]
     if staged_lump_sum > ZERO:
         textual_guidelines.append(

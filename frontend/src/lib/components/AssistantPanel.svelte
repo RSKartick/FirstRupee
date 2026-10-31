@@ -74,8 +74,10 @@
 		busy = true;
 		error = '';
 		try {
-			const history = entries.slice(-16).map((e) => ({ role: e.role, content: e.content }));
-			const reply = await api.assistant({ profile_id: session.activeProfileId, messages: history });
+			const reply = await api.assistant({
+				profile_id: session.activeProfileId,
+				messages: [{ role: 'user', content: question }]
+			});
 			entries = [...entries, { role: 'assistant', content: reply.answer, meta: reply }];
 		} catch (err) {
 			error = err instanceof ApiError ? err.message : 'The assistant could not answer right now.';

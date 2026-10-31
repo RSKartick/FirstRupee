@@ -1,6 +1,6 @@
 """FirstRupee API entrypoint.
 
-Start-up: runs Alembic migrations to head, then seeds the synthetic catalogue (idempotent).
+Start-up: runs Alembic migrations to head, then seeds the public Indian market catalogue (idempotent).
 Errors: domain errors map to 4xx with a user-safe message; unexpected errors are logged server-side and return a generic 500.
 """
 
@@ -43,7 +43,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         run_migrations()
         with SessionLocal() as session:
             seed_catalog(session)
-    logger.info("FirstRupee API ready (schema at head, synthetic catalogue present).")
+    logger.info("FirstRupee API ready (schema at head, market catalogue present).")
     yield
 
 

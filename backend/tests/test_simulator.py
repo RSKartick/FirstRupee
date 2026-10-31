@@ -233,3 +233,25 @@ def test_time_weighted_return_equals_value_change_when_there_are_no_contribution
     value_change = (float(m["ending_value"]) / 100000.0 - 1.0) * 100
     assert m["time_weighted_return_pct"] == pytest.approx(value_change, abs=0.01)
     assert result["primary"]["run"]["series"][-1]["cash"] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_staged_initial_mwr_dates_tranches_when_deployed():
+    # With 0% cash interest and 1% monthly growth, staging 12,000 across 12 monthly tranches of 1,000
+    # has the exact same market cash flows as a 0-initial, 1,000/month SIP, so their XIRRs must match.
+    rising = priced_series_points(START, END, monthly_growth(0.01))
+    staged_res = sim(observations=rising, scenario="STAGED_INITIAL", initial=Decimal("12000"), monthly=Decimal("0"),
+                     duration_months=12, cash_interest_pct=Decimal("0"))
+    sip_res = sim(observations=rising, scenario="LUMP_SUM", initial=Decimal("0"), monthly=Decimal("1000"),
+                  duration_months=12, cash_interest_pct=Decimal("0"))
+    assert metrics(staged_res)["money_weighted_return_pct"] == pytest.approx(
+        metrics(sip_res)["money_weighted_return_pct"], abs=0.05
+    )
+
+
+def test_delayed_start_holds_monthly_contributions_in_cash_until_delay():
+    result = sim(scenario="DELAYED_START", initial=Decimal("10000"), monthly=Decimal("1000"),
+                 delay_months=6, duration_months=12, cash_interest_pct=Decimal("0"))
+    trades = result["primary"]["run"]["trades"]
+    # No trades may occur before month 6 (start + 6 months)
+    delay_date = date(2025, 6, 30)
+    assert all(date.fromisoformat(t["date"]) >= delay_date for t in trades)

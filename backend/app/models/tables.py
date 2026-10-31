@@ -166,7 +166,7 @@ class EvidenceSource(Base):
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     source_type: Mapped[str] = mapped_column(String(40), nullable=False)
     verification_status: Mapped[str] = mapped_column(String(20), nullable=False)  # VERIFIED | UNVERIFIED | SYNTHETIC
-    source_url: Mapped[str | None] = mapped_column(String(500))  # never invented: demo records keep this NULL
+    source_url: Mapped[str | None] = mapped_column(String(500))  # official issuer or regulator URL when verified; NULL for synthetic records
     publication_date: Mapped[date | None] = mapped_column(Date)
     period: Mapped[str | None] = mapped_column(String(20))
     retrieved_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)

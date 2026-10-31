@@ -212,4 +212,23 @@ def test_every_result_explains_its_next_steps_and_disclaimer():
     r = run(rahul())
     assert r["improvement_steps"]
     assert "not a recommendation" in r["disclaimer"]
+    assert READINESS_RULE_VERSION in r["disclaimer"]
     assert r["explanation"]
+
+
+def test_not_ready_allocation_reconciles_with_monthly_plan():
+    r = run(rahul())
+    rec = r["recommendations"]
+    mp = rec["monthly_plan"]
+    assert mp["recommended_market_deployment_inr"] == "0.00"
+    reserve_total = Decimal(mp["emergency_topup_inr"]) + Decimal(mp["goal_reserve_inr"])
+    alloc_total = sum(Decimal(item["monthly_amount_inr"]) for item in rec["asset_allocations"])
+    assert alloc_total == reserve_total
+    assert all(item["action_status"] == "PARK_SAFELY_UNTIL_READY" for item in rec["asset_allocations"])
+
+
+def test_ready_bands_are_never_low():
+    r = run(priya())
+    assert r["status"] == "READY_TO_EXPLORE"
+    assert r["metrics"]["risk_capacity_band"] in ("MODERATE", "HIGH")
+    assert r["metrics"]["risk_tolerance_band"] in ("MODERATE", "HIGH")

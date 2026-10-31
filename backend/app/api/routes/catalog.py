@@ -23,39 +23,77 @@ VOLATILITY_ORDER = {"LOW": 0, "MODERATE": 1, "HIGH": 2}
 MAX_HISTORY_YEARS = 10
 
 
-def _summary(db: Session, asset: Asset) -> dict[str, Any]:
-    stats = db.execute(
-        select(func.count(MarketObservation.id), func.min(MarketObservation.obs_date), func.max(MarketObservation.obs_date))
-        .where(MarketObservation.asset_id == asset.id)
-    ).one()
-    latest_row = db.execute(
-        select(MarketObservation.close, MarketObservation.obs_date)
-        .where(MarketObservation.asset_id == asset.id)
-        .order_by(MarketObservation.obs_date.desc())
-        .limit(2)
+def _summaries(db: Session, assets: list[Asset]) -> list[dict[str, Any]]:
+    if not assets:
+        return []
+    asset_ids = [a.id for a in assets]
+    stats_rows = db.execute(
+        select(
+            MarketObservation.asset_id,
+            func.count(MarketObservation.id),
+            func.min(MarketObservation.obs_date),
+            func.max(MarketObservation.obs_date),
+        )
+        .where(MarketObservation.asset_id.in_(asset_ids))
+        .group_by(MarketObservation.asset_id)
     ).all()
-    latest_price = f"{latest_row[0].close:.2f}" if latest_row else None
-    day_change_pct = None
-    if len(latest_row) >= 2 and float(latest_row[1].close) > 0:
-        day_change_pct = round((float(latest_row[0].close) / float(latest_row[1].close) - 1.0) * 100.0, 2)
-    return {
-        "id": asset.id,
-        "symbol": asset.symbol,
-        "name": asset.name,
-        "asset_type": asset.asset_type,
-        "description": asset.description,
-        "volatility_class": asset.volatility_class,
-        "min_horizon_months": asset.min_horizon_months,
-        "expense_ratio_pct": f"{asset.expense_ratio_pct:.2f}" if asset.expense_ratio_pct is not None else None,
-        "is_synthetic": asset.is_synthetic,
-        "data_source": asset.data_source,
-        "data_as_of": asset.data_as_of.isoformat(),
-        "observations": stats[0],
-        "first_observation": stats[1].isoformat() if stats[1] else None,
-        "last_observation": stats[2].isoformat() if stats[2] else None,
-        "latest_price": latest_price,
-        "day_change_pct": day_change_pct,
-    }
+    stats_map = {row[0]: (row[1], row[2], row[3]) for row in stats_rows}
+
+    rn_col = (
+        func.row_number()
+        .over(partition_by=MarketObservation.asset_id, order_by=MarketObservation.obs_date.desc())
+        .label("rn")
+    )
+    subq = (
+        select(
+            MarketObservation.asset_id,
+            MarketObservation.close,
+            MarketObservation.obs_date,
+            rn_col,
+        )
+        .where(MarketObservation.asset_id.in_(asset_ids))
+        .subquery()
+    )
+    latest_rows = db.execute(
+        select(subq.c.asset_id, subq.c.close, subq.c.obs_date, subq.c.rn)
+        .where(subq.c.rn <= 2)
+        .order_by(subq.c.asset_id, subq.c.rn)
+    ).all()
+    latest_map: dict[int, list[tuple[Any, Any]]] = {}
+    for aid, close_val, obs_d, _ in latest_rows:
+        latest_map.setdefault(aid, []).append((close_val, obs_d))
+
+    out: list[dict[str, Any]] = []
+    for asset in assets:
+        cnt, first_d, last_d = stats_map.get(asset.id, (0, None, None))
+        pair = latest_map.get(asset.id, [])
+        latest_price = f"{pair[0][0]:.2f}" if pair else None
+        day_change_pct = None
+        if len(pair) >= 2 and float(pair[1][0]) > 0:
+            day_change_pct = round((float(pair[0][0]) / float(pair[1][0]) - 1.0) * 100.0, 2)
+        out.append({
+            "id": asset.id,
+            "symbol": asset.symbol,
+            "name": asset.name,
+            "asset_type": asset.asset_type,
+            "description": asset.description,
+            "volatility_class": asset.volatility_class,
+            "min_horizon_months": asset.min_horizon_months,
+            "expense_ratio_pct": f"{asset.expense_ratio_pct:.2f}" if asset.expense_ratio_pct is not None else None,
+            "is_synthetic": asset.is_synthetic,
+            "data_source": asset.data_source,
+            "data_as_of": asset.data_as_of.isoformat(),
+            "observations": cnt,
+            "first_observation": first_d.isoformat() if first_d else None,
+            "last_observation": last_d.isoformat() if last_d else None,
+            "latest_price": latest_price,
+            "day_change_pct": day_change_pct,
+        })
+    return out
+
+
+def _summary(db: Session, asset: Asset) -> dict[str, Any]:
+    return _summaries(db, [asset])[0]
 
 
 @router.get("/benchmarks")
@@ -69,10 +107,10 @@ def list_benchmarks() -> dict[str, Any]:
 @router.post("/refresh", dependencies=[Depends(csrf_protected)])
 def refresh_catalog(db: Session = Depends(database)) -> dict[str, Any]:
     seed_catalog(db, force_refresh=True)
-    assets = db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all()
+    assets = list(db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all())
     return {
         "refreshed": True,
-        "assets": [_summary(db, asset) for asset in assets],
+        "assets": _summaries(db, assets),
         "provider": get_provider().id,
     }
 
@@ -84,8 +122,8 @@ def list_assets(
     max_min_horizon_months: int | None = Query(default=None, ge=1, le=240),
     db: Session = Depends(database),
 ) -> dict[str, Any]:
-    assets = db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all()
-    items = []
+    assets = list(db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all())
+    filtered: list[Asset] = []
     for asset in assets:
         if asset_type and asset.asset_type != asset_type:
             continue
@@ -93,10 +131,10 @@ def list_assets(
             continue
         if max_min_horizon_months and asset.min_horizon_months > max_min_horizon_months:
             continue
-        items.append(_summary(db, asset))
+        filtered.append(asset)
     provider = get_provider()
     return {
-        "assets": items,
+        "assets": _summaries(db, filtered),
         "provider": provider.id,
         "note": provider.attribution,
     }

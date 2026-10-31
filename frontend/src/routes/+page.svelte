@@ -69,7 +69,7 @@
 		<div class="card-head">
 			<div>
 				<h2>Explore instant investor case studies (or build your own profile above)</h2>
-				<p class="muted mt-1">Each button creates a private workspace pre-loaded with a realistic Indian household profile so you can immediately inspect NOT READY, Beginner Ready, and Experienced Ready recommendations.</p>
+				<p class="muted mt-1">Each button creates a private workspace pre-loaded with a realistic Indian household profile so you can immediately inspect NOT READY, Beginner Ready, and Experienced Preparation recommendations.</p>
 			</div>
 		</div>
 		<div class="grid gap-4 md:grid-cols-3">
@@ -89,7 +89,7 @@
 			</div>
 			<div class="rounded-xl border border-line bg-raised/40 p-5">
 				<p class="font-semibold">Arjun - Experienced Portfolio Builder (Quant Mode)</p>
-				<p class="muted mt-2">Rs 1,50,000 income, zero debt, Rs 2,00,000 unallocated liquid capital, and Experienced mode enabled for technical core-satellite allocation.</p>
+				<p class="muted mt-2">Rs 1,50,000 income, zero debt, Rs 2,00,000 unallocated liquid capital, and Experienced mode enabled. Classifies as PREPARATION due to an ambitious Rs 1.2 Cr retirement goal that needs slightly more than his monthly surplus.</p>
 				<button class="btn btn-primary mt-4" onclick={() => loadDemo('arjun')} disabled={busy !== ''}>
 					{busy === 'arjun' ? 'Opening workspace...' : 'Open Arjun Workspace'}
 				</button>
