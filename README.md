@@ -1,155 +1,165 @@
 # FirstRupee
 
-> Invest with understanding, not uncertainty.
+**Invest with understanding, not uncertainty.**
 
-FirstRupee is an AI-powered financial decision intelligence platform designed for first-time retail investors. Rather than functioning as a speculative stock-picking assistant, FirstRupee evaluates an investor's personal financial position, liquidity, and risk capacity before analyzing any asset. It provides objective, evidence-grounded research, balances bullish potential against critical downside risks, and simulates hypothetical outcomes to foster informed financial decisions.
+FirstRupee is an educational decision-intelligence platform for first-time investors. It starts by understanding the investor
+(Financial DNA and a deterministic Investment Readiness Engine) before analysing any investment. It can explain why an investor
+should postpone taking risk. It does not give buy or sell instructions, predict markets or act as a regulated adviser.
 
----
+| Layer | Technology |
+| --- | --- |
+| Frontend | SvelteKit 2, Svelte 5, TypeScript (strict), Tailwind CSS v4, Lucide icons, Vitest |
+| Backend | Python 3.11, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic, Pandas, NumPy, HTTPX, argon2-cffi, pytest |
+| Database | SQLite by default; any SQLAlchemy URL (for example PostgreSQL) through `DATABASE_URL` |
+| AI | Optional OpenAI-compatible model behind a provider-independent client; deterministic engines otherwise |
 
-## The Problem
-
-First-time retail investors consistently confront three major hurdles:
-
-1. **Investment Confusion**: An overwhelming landscape of asset classes (stocks, index funds, mutual funds, ETFs, fixed deposits, gold) combined with reliance on social media tips, influencers, and speculative hype.
-2. **Absence of Personal Suitability**: Generic advice ignores whether an individual possesses sufficient emergency savings, high-interest debt obligations, or fragile cash flows. An investor with minimal reserves receives the same reckless guidance as an investor with substantial surplus capital.
-3. **Timing and Allocation Uncertainty**: Beginners struggle with timing decisions: whether to invest immediately or wait, deploy lump sums or staggered installments, and how to withstand market pullbacks without panic selling.
-
----
-
-## Core Solution and Workflow
-
-FirstRupee establishes a structured decision pathway:
-
-1. **Profile Investor DNA**: Capture income, essential expenditures, debts, existing liquid reserves, and distinct risk profiles.
-2. **Assess Investment Readiness**: Apply deterministic financial rules to verify whether funds can be safely committed to market risk.
-3. **Explore Suitable Opportunities**: Present educational overviews of diversified asset categories with balanced pros and cons.
-4. **Dual-Perspective Research**: Pair an AI Research Analyst with an AI Devil's Advocate to examine both positive drivers and critical vulnerabilities.
-5. **Synchronize Timing Clocks**: Align personal cash inflows, goal milestones, and broader market conditions through the Three-Clock Engine.
-6. **Simulate Scenarios and Issue Decision Passport**: Stress-test investment choices and export an evidence-backed, transparent investment audit report.
-
----
-
-## Key Modules
-
-### 1. Investor Onboarding and Financial DNA
-- Collects foundational figures: monthly take-home pay, fixed commitments, existing emergency funds, investment timeline, and milestones.
-- Distinctly separates **Risk Tolerance** (psychological willingness to accept fluctuations) from **Risk Capacity** (financial ability to absorb capital loss without lifestyle disruption).
-- Produces a clear Financial DNA summary avoiding arbitrary score inflation.
-
-### 2. Deterministic Investment Readiness Engine
-- Computes monthly net cash surplus: `Surplus = Income - Expenses - EMIs - Commitments`.
-- Evaluates emergency fund coverage against recurring monthly liabilities: `Coverage = Liquid Emergency Savings / Essential Monthly Expenditure`.
-- Enforces strict educational guardrails: identifies insufficient safety cushions, debt repayment priorities, or short investment horizons before capital is exposed to market risk.
-- Outputs three definitive statuses: **Not Ready**, **Preparation**, or **Ready to Explore**. The system will decline to recommend risky assets when financial fundamentals are absent.
-
-### 3. Investment Discovery Engine
-- Covers primary asset categories: Equities, Broad-Market Index Funds, Mutual Funds, ETFs, Fixed Deposits, and Gold.
-- Replaces raw return rankings with contextual analysis: provides explicit "Why this fits" and "Why this might not fit" rationales for every asset class.
-
-### 4. AI Research Analyst and Devil's Advocate
-- **Research Analyst (Bull Thesis)**: Reviews factual revenue growth, operating margins, balance sheet health, and competitive strengths with direct citations to verified data.
-- **Devil's Advocate (Bear Thesis)**: Systematically probes for vulnerabilities, such as margin compression, deteriorating operating cash flow, debt escalation, excessive valuation multiples, and structural sector risks.
-- **Evidence and Suitability Validator**: A deterministic verification layer confirming data currency, numeric consistency, and alignment with the user's investment horizon. Emits an "Insufficient Evidence" status when verified information is lacking.
-
-### 5. Three-Clock Timing Engine
-Resolves timing dilemmas by decomposing them into three independent dimensions:
-- **Money Clock**: Identifies when surplus cash genuinely becomes accessible based on cash flow cycles.
-- **Goal Clock**: Tracks the date when target capital must be drawn down, safeguarding short-term objectives from volatile assets.
-- **Market Clock**: Provides prevailing valuation and historical volatility context without attempting speculative market-timing predictions.
-
-### 6. What-If Investment Simulator
-- Evaluates alternative allocation strategies: Lump-sum deployment, systematic periodic contributions, or retaining liquidity.
-- Computes historical rolling metrics, maximum drawdowns, and annualized volatility where reliable data series exist.
-- Displays hypothetical shock matrices (e.g., -10%, -20%, -30% market movements) to instill realistic expectations prior to capital deployment.
-
-### 7. Decision Passport
-- A unified, auditable summary report consolidating Financial DNA, readiness classification, thesis, counter-thesis, downside risk evaluation, timing rationale, and scenario simulations.
-- Incorporates **Thesis Expiry Conditions**: registers underlying assumptions (such as operating margin thresholds or debt ceilings) and alerts users when fresh data invalidates the original rationale.
-
----
-
-## Conceptual System Flow
+## Repository layout
 
 ```
-User Input & Profile
-        |
-        v
-Financial DNA & Readiness Assessment
-        |
-        v
-Asset Discovery & Selection
-        |
-        v
-Verified Market & Financial Data
-        |
-        +-------------------------+
-        |                         |
-        v                         v
-Research Analyst           Devil's Advocate
-(Bullish Case)             (Bearish Case)
-        |                         |
-        +------------+------------+
-                     |
-                     v
-             Evidence Evaluator
-                     |
-                     v
-           Three-Clock Alignment
-                     |
-                     v
-             What-If Simulator
-                     |
-                     v
-             Decision Passport
+frontend/   SvelteKit application (routes, components, typed API client, Vitest tests)
+backend/    FastAPI application
+  app/core        configuration, Argon2id hashing, sessions helpers, errors
+  app/db          engine/session factory, Decimal-safe column type, migrations runner
+  app/models      SQLAlchemy 2 ORM tables (owner-scoped)
+  app/schemas     Pydantic request/response contracts and money validation
+  app/services
+    financial_engine  dates, exact money, versioned rules, readiness, timing, market metrics
+    simulator         Pandas/NumPy scenario engine (no look-ahead, cash-flow-neutral returns, XIRR)
+    ai_engine         LLM client, prompts, research analyst/devil's advocate, evaluator, assistant
+    passport          reproducible Decision Passport composition
+  app/data_sources  provider boundary and the synthetic demonstration catalogue
+  app/repositories  owner-scoped queries
+  alembic/          migrations (versions/ holds the schema history)
+  tests/            pytest suite (engines, AI failure paths, security, API journeys, migrations)
+scripts/start.mjs   production launcher (backend + SvelteKit server on one public port)
+docker-compose.yml  two-service deployment (written; see the status note below)
 ```
 
----
+## Quick start (local)
 
-## Demo Personas
+Requirements: Node.js 20+ (22 recommended), Python 3.11+ with `venv`, and optionally Docker.
 
-FirstRupee demonstrates contrasting recommendations based on personal financial realities:
+```bash
+# 1. Frontend dependencies
+npm --prefix frontend ci
 
-### Profile A: Rahul (Not Ready to Invest)
-- **Financial Profile**: Monthly income of 30,000 INR, essential expenses of 20,000 INR, debt servicing of 4,000 INR, liquid savings of 20,000 INR.
-- **User Intent**: Holds 20,000 INR in savings and intends to invest in a volatile trending stock toward a 50,000 INR milestone due in 10 months.
-- **FirstRupee Verdict**: Flagged as **Not Ready**. Current savings cover merely one month of basic expenses, and short-term capital must not be subjected to equity volatility. Recommended action: Build emergency reserves and eliminate high-cost obligations first.
+# 2. Backend virtual environment and pinned dependencies
+#    Debian/Ubuntu: sudo apt install python3.11-venv   (venv needs ensurepip)
+cd backend
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt        # exact pins also in requirements.lock.txt
+cd ..
 
-### Profile B: Priya (Ready to Explore)
-- **Financial Profile**: Monthly income of 80,000 INR, monthly commitments of 40,000 INR, liquid emergency reserve of 2,50,000 INR, monthly surplus of 40,000 INR.
-- **User Intent**: Allocate 10,000 INR monthly toward a 10-year wealth creation objective.
-- **FirstRupee Verdict**: Classified as **Ready to Explore**. Proceeds to diversified asset discovery, dual-perspective stock and index research, systematic contribution simulations, and Decision Passport compilation.
+# 3. Optional configuration (the demo needs none)
+cp .env.example backend/.env
 
----
+# 4. Automated tests
+npm --prefix frontend run test          # Vitest unit tests
+(cd backend && .venv/bin/python -m pytest -q)
 
-## Regulatory and Guardrail Principles
+# 5. Type check and production build
+npm run check
+npm run build
 
-FirstRupee is engineered as an educational and decision-intelligence platform. It strictly enforces the following principles:
+# 6. Run the production stack on http://localhost:3000
+npm run start
+```
 
-- **No Blind Stock-Picking**: The system rejects speculative recommendations and prohibits single-sided bullish summaries.
-- **Strict Anti-Hallucination**: Financial figures, ratios, and historical figures must originate from verified data adapters, never generated from LLM memory.
-- **Regulatory Awareness**: Designed with awareness of SEBI Investment Advisers regulations. The platform is dedicated to financial literacy and structured research, avoiding automated order execution or regulated personalized securities advice.
-- **Data Privacy**: Prohibits the collection of banking credentials, broker passwords, PAN, or government identifiers.
+Development mode (two terminals):
 
----
+```bash
+(cd backend && .venv/bin/python -m uvicorn app.main:app --reload --port 8000)
+BACKEND_URL=http://127.0.0.1:8000 npm --prefix frontend run dev    # http://localhost:5173
+```
 
-## Product Roadmap
+### Database
 
-- **Phase 1: Decision Intelligence Core**
-  - Financial DNA onboarding and deterministic readiness engine
-  - Curated multi-asset catalog and historical metrics
-  - Dual AI Research Analyst and Devil's Advocate
-  - What-If simulator and comprehensive Decision Passport
-- **Phase 2: Continuous Tracking**
-  - Permitted portfolio integration and concentration analysis
-  - Automated thesis expiry monitoring against fresh corporate filings
-  - Multi-language educational support
-- **Phase 3: Advisory Intelligence**
-  - Comprehensive goal-based financial planning
-  - Adviser-assisted collaborative workflows
-  - Compliant integrations with certified financial advisory channels
+Migrations run automatically when the API starts (`app/main.py` lifespan → `app/db/migrate.py` → Alembic `upgrade head`). They
+can also be run explicitly:
 
----
+```bash
+cd backend
+.venv/bin/alembic -c alembic.ini upgrade head          # apply all migrations
+.venv/bin/alembic -c alembic.ini revision --autogenerate -m "describe change"   # create a new migration after editing models
+```
 
-## License
+Money is stored as exact decimal values (`DecimalText`): `NUMERIC(20,4)` on PostgreSQL and decimal text on SQLite. It is never
+stored as binary floating point. To use PostgreSQL, set `DATABASE_URL=postgresql+psycopg://user:password@host/db`, install a
+driver (`psycopg`) and run the same migrations.
 
-This project is licensed under the terms specified in the [LICENSE](LICENSE) file.
+## Demo
+
+Open `http://localhost:3000` and choose **Open Rahul's workspace** or **Open Priya's workspace**. Each button creates a private guest
+copy of a fictional investor, so visitors never share edits. You can also register an account.
+
+Live API walk-through against a running server (no API keys needed):
+
+```bash
+(cd backend && .venv/bin/python scripts/demo_journey.py http://localhost:3000)
+```
+
+## Security model
+
+- **Authentication**: email and password (Argon2id hashing). Sessions are random opaque tokens sent in an `HttpOnly`, `SameSite=Lax`
+  cookie (`Secure` when `COOKIE_SECURE=true`). Only a SHA-256 digest of each token is stored. Logout deletes the session.
+- **CSRF**: every state-changing request must echo the per-session token in `X-CSRF-Token`. The token is held in memory on the
+  client, never in localStorage.
+- **Ownership**: every user-owned table carries `user_id`, and every repository query filters by the authenticated user. A record
+  belonging to another account returns `404`, the same as a missing record.
+- **Associations**: passports reject research or simulations that belong to another profile, and reject a simulation on a different
+  instrument from the research.
+- **Errors**: responses contain user-safe messages only. Stack traces, SQL and provider bodies are logged server-side, never returned.
+- **Secrets**: read from the environment only. None are committed. `.env` files are ignored by Git.
+- **Prompt-injection controls**: documents and user text are passed in delimited untrusted-data blocks. Model output must match a
+  schema, and every claim is checked by the deterministic evaluator.
+
+Not yet implemented: rate limiting on login, email verification, password reset, account deletion self-service, and audit logs.
+
+## Financial rules (versioned)
+
+Each engine has a rule-set version that is stored with every result:
+
+| Engine | Version | Purpose |
+| --- | --- | --- |
+| Readiness | `readiness-rules-v2.0` | NOT_READY / PREPARATION / READY_TO_EXPLORE with reasons, inputs and next steps |
+| Timing | `timing-rules-v2.0` | Three clocks and an explicit precedence list (R1–R9) |
+| Simulator | `simulator-v2.0` | Historical and hypothetical scenarios, cash-flow-neutral metrics |
+| Evaluator | `evaluator-rules-v2.0` | Claim-by-claim verification and deterministic material-risk rules |
+| Prompts | `prompts-v2.0` | Analyst, devil's advocate and assistant prompts |
+| Passport | `passport-v2.0` | Snapshot schema |
+
+Thresholds and their rationale are documented in `backend/app/services/financial_engine/rules.py`. They are educational guardrails,
+not universal financial rules or regulatory compliance.
+
+Key definitions used throughout:
+
+- **Monthly surplus** = income − essential expenses − non-essential expenses − EMIs − other commitments.
+- **Emergency coverage** = liquid emergency reserve ÷ essential expenses. Unknown when essentials are zero. Unknown is never treated as adequate.
+- **Investable monthly money** = surplus − monthly goal need − emergency replenishment (gap to 6 months ÷ 12). Never negative.
+- **Time-weighted return** = the cash-flow-neutral return of the strategy (unitised NAV). **Money-weighted return** = XIRR on your dated flows.
+  Contributions are never presented as gains.
+
+## Market data
+
+The demonstration uses a fictional catalogue with synthetic, fixed-seed price series and synthetic evidence records. Every record
+is labelled `SYNTHETIC`, and every page shows that label. No record has an invented source URL. The data boundary is
+`app/data_sources/provider.py`. A real provider (for example an AMFI NAV feed or a licensed equity feed) would implement the same
+interface and write `LIVE` rows. Before any real provider is added, verify Indian coverage, licence terms, usage limits, historical
+depth and attribution. Scraping protected exchange data or redistributing licensed data is not permitted.
+
+## Known limitations
+
+- The Playwright browser end-to-end suite is **not included**. Verification covers the backend API, the frontend unit tests, the type
+  check, the production build and the live API journey script. Browser-level testing remains to be added.
+- Dividends, corporate actions, fees, taxes and inflation are excluded from simulations (stated on every run).
+- The language-model path is implemented and tested against mocked responses. It has not been run against a live provider here.
+- Docker Compose files are written but were not executed in this environment.
+- Live market-data adapters are not implemented. Only the synthetic demonstration dataset is available.
+- No authentication hardening beyond the measures above (no MFA, lockout or email verification).
+- The readiness and timing rules are educational heuristics, not validated psychometric or financial ratings.
+- A commercial deployment requires separate review of applicable SEBI requirements, data licences and privacy obligations.
+
+## Stack note
+
+The earlier Next.js/Drizzle implementation was replaced to meet the SvelteKit + FastAPI requirement. The previous code is preserved
+outside this repository. Its engine-level tests were ported to pytest, and its product screens were rebuilt in SvelteKit.

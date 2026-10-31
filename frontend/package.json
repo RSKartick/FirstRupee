@@ -1,0 +1,36 @@
+{
+  "name": "firstrupee-frontend",
+  "version": "2.0.0",
+  "description": "FirstRupee SvelteKit frontend",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run",
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sync": "svelte-kit sync",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --threshold error",
+    "start": "node build/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.5.7",
+    "@sveltejs/kit": "^2.70.3",
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "jsdom": "^26.1.0",
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.7",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.5",
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "lucide-svelte": "^0.544.0"
+  },
+  "private": "true",
+  "type": "module"
+}

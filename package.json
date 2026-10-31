@@ -1,0 +1,17 @@
+{
+  "name": "firstrupee",
+  "version": "2.0.0",
+  "description": "FirstRupee — AI-assisted investment decision intelligence (SvelteKit + FastAPI)",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm --prefix frontend run test && cd backend && .venv/bin/python -m pytest -q",
+    "build": "npm --prefix frontend run build",
+    "start": "node scripts/start.mjs",
+    "check": "npm --prefix frontend run check",
+    "install:frontend": "npm --prefix frontend ci"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "private": true
+}

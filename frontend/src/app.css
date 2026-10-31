@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+@theme {
+	--color-canvas: #08101d;
+	--color-panel: #0f1a2c;
+	--color-raised: #15223a;
+	--color-line: #22324d;
+	--color-ink: #e7edf7;
+	--color-muted: #8b9bb4;
+	--color-brand: #10b981;
+	--color-brand-soft: #34d399;
+	--color-azure: #60a5fa;
+	--color-amber: #f5b53d;
+	--color-danger: #f87171;
+	--font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+html {
+	color-scheme: dark;
+}
+
+body {
+	font-family: var(--font-sans);
+}
+
+:focus-visible {
+	outline: 2px solid var(--color-brand);
+	outline-offset: 2px;
+	border-radius: 6px;
+}
+
+.card {
+	background: var(--color-panel);
+	border: 1px solid var(--color-line);
+	border-radius: 16px;
+	padding: 1.25rem;
+}
+
+.card-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.card-head h2 {
+	font-size: 15px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.muted {
+	color: var(--color-muted);
+	font-size: 13px;
+	line-height: 1.55;
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	border-radius: 10px;
+	padding: 0.55rem 1rem;
+	font-size: 14px;
+	font-weight: 500;
+	border: 1px solid var(--color-line);
+	background: var(--color-raised);
+	color: var(--color-ink);
+	cursor: pointer;
+	text-decoration: none;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+	border-color: rgba(16, 185, 129, 0.55);
+	color: var(--color-brand-soft);
+}
+
+.btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.btn-primary {
+	background: var(--color-brand);
+	border-color: var(--color-brand);
+	color: #04130d;
+}
+
+.btn-primary:hover:not(:disabled) {
+	background: var(--color-brand-soft);
+	color: #04130d;
+}
+
+.btn-ghost {
+	background: transparent;
+	border-color: transparent;
+}
+
+.btn-danger {
+	background: rgba(248, 113, 113, 0.1);
+	border-color: rgba(248, 113, 113, 0.4);
+	color: var(--color-danger);
+}
+
+.field-input {
+	width: 100%;
+	border-radius: 10px;
+	border: 1px solid var(--color-line);
+	background: var(--color-canvas);
+	color: var(--color-ink);
+	padding: 0.55rem 0.75rem;
+	font-size: 14px;
+}
+
+.field-input:focus {
+	border-color: rgba(16, 185, 129, 0.6);
+	outline: none;
+}
+
+.field-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 500;
+	margin-bottom: 0.35rem;
+}
+
+.field-error {
+	color: var(--color-danger);
+	font-size: 12px;
+	margin-top: 0.3rem;
+}
+
+.table-wrap {
+	overflow-x: auto;
+}
+
+.data-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.data-table th {
+	text-align: left;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--color-muted);
+	padding: 0.5rem 0.6rem;
+	border-bottom: 1px solid var(--color-line);
+}
+
+.data-table td {
+	padding: 0.6rem;
+	border-bottom: 1px solid rgba(34, 50, 77, 0.6);
+	vertical-align: top;
+}
+
+.kv {
+	display: grid;
+	gap: 0;
+}
+
+.kv > div {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.55rem 0;
+	border-bottom: 1px solid rgba(34, 50, 77, 0.6);
+	font-size: 13px;
+}
+
+.kv dt {
+	color: var(--color-muted);
+}
+
+.kv dd {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+@media print {
+	body {
+		background: #fff !important;
+		color: #000 !important;
+	}
+
+	.no-print {
+		display: none !important;
+	}
+
+	.card {
+		background: #fff !important;
+		border-color: #cfd6e2 !important;
+		break-inside: avoid;
+	}
+
+	.muted {
+		color: #334155 !important;
+	}
+}
