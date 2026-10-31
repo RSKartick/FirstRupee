@@ -53,9 +53,6 @@
 				<div class="text-right"><StatusBadge status={passport.readiness.status} /><p class="muted mt-1 text-[11px]">Rule set {passport.readiness.rule_version}</p></div>
 			</div>
 			<p class="muted mt-4">A stored snapshot. Everything below was copied from the inputs and engine outputs at the time it was created.</p>
-			{#if passport.data_status.synthetic_data_used}
-				<div class="mt-4"><Notice tone="warn" title="Synthetic demonstration data is used">{passport.data_status.synthetic_notice}</Notice></div>
-			{/if}
 		</section>
 
 		<Card title="1-2 · Investor profile and financial readiness">
@@ -140,7 +137,7 @@
 			{#if passport.simulation}
 				<dl class="kv">
 					<div><dt>Scenario</dt><dd>{labelize(passport.simulation.scenario_type)} · {labelize(passport.simulation.market_path)}</dd></div>
-					<div><dt>Amounts</dt><dd>{passport.simulation.financially_available ? 'From the investor profile' : 'Hypothetical - not financially available'}</dd></div>
+					<div><dt>Amounts</dt><dd>{passport.simulation.financially_available ? 'From the investor profile' : 'Custom simulation amounts'}</dd></div>
 					<div><dt>Window</dt><dd>{dateLabel(passport.simulation.window.start)} to {dateLabel(passport.simulation.window.end)}</dd></div>
 					<div><dt>Ending value</dt><dd>{inr(passport.simulation.primary_metrics.ending_value as string)}</dd></div>
 					<div><dt>Money put in</dt><dd>{inr(passport.simulation.primary_metrics.total_contributions as string)}</dd></div>

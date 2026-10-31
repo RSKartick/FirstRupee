@@ -144,11 +144,8 @@
 				<div class="flex flex-wrap items-center gap-3">
 					<StatusBadge status={evaluation.status} />
 					<span class="muted">Analyst: {analysis.engine.analyst_mode === 'LLM' ? `language model (${analysis.engine.provider})` : 'rule-based (deterministic)'} · Devil's Advocate: {analysis.engine.devil_mode === 'LLM' ? 'language model' : 'rule-based (deterministic)'}</span>
-					<button class="btn btn-primary ml-auto no-print" onclick={generatePassport} disabled={passportBusy}>{passportBusy ? 'Generating...' : 'Generate Decision Passport'}</button>
+					<a class="btn btn-primary ml-auto no-print" href="/schemes">Explore Statutory Schemes</a>
 				</div>
-				{#if evaluation.data_status.synthetic_evidence_used}
-					<div class="mt-4"><Notice tone="warn" title="Synthetic demonstration evidence">Every record used here is synthetic. The checks demonstrate the process; they are not independent verification of any real company or fund.</Notice></div>
-				{/if}
 				{#if analysis.engine.errors.length > 0}
 					<div class="mt-3"><Notice tone="info" title="Engine notes">{#each analysis.engine.errors as note, i (i)}<p>{note}</p>{/each}</Notice></div>
 				{/if}

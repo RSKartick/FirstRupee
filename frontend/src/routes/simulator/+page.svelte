@@ -16,17 +16,13 @@
 		{ value: 'COMPARISON', label: 'D · Compare two', hint: 'The same capital and dates in two instruments. Both must have full history.' }
 	];
 	const PATHS = [
-		{ value: 'HISTORICAL', label: 'Real historical prices / NAVs (NSE & AMFI)' },
-		{ value: 'ZERO_RETURN', label: 'Hypothetical - price never changes' },
-		{ value: 'HYPOTHETICAL_UP', label: 'Hypothetical - steady 1% a month rise' },
-		{ value: 'HYPOTHETICAL_DOWN', label: 'Hypothetical - steady 1.5% a month fall' },
-		{ value: 'SEEDED_GBM', label: 'Hypothetical - seeded random path (illustrative)' }
+		{ value: 'HISTORICAL', label: 'Live & Historical Market Data (NSE & AMFI)' }
 	];
 
 	let assets = $state<AssetSummary[]>([]);
 	let readiness = $state<Readiness | null>(null);
 	let scenario = $state('LUMP_SUM');
-	let source = $state<'PROFILE_DERIVED' | 'USER_HYPOTHETICAL'>('USER_HYPOTHETICAL');
+	let source = $state<'PROFILE_DERIVED' | 'USER_HYPOTHETICAL'>('PROFILE_DERIVED');
 	let assetId = $state('');
 	let compareId = $state('');
 	let initial = $state('');
@@ -51,7 +47,7 @@
 			: readiness === null
 				? 'Loading your readiness…'
 				: readiness.status === 'NOT_READY'
-					? 'Readiness is NOT_READY, so there is no investable amount. You can still run a labelled hypothetical scenario.'
+					? 'Readiness is NOT_READY, so there is no investable amount. You can still run a test scenario with custom amounts.'
 					: Number(readiness.metrics.designated_monthly ?? 0) <= 0
 						? 'You have not designated a monthly investment amount on your profile yet.'
 						: ''
@@ -77,13 +73,18 @@
 	async function loadReadiness(id: number | null) {
 		readiness = null;
 		result = null;
-		source = 'USER_HYPOTHETICAL';
 		if (!id) return;
 		try {
 			readiness = (await api.readiness(id)).readiness;
-			if (readiness.status !== 'NOT_READY' && Number(readiness.metrics.designated_monthly ?? 0) > 0) source = 'PROFILE_DERIVED';
+			if (readiness.status !== 'NOT_READY') {
+				source = 'PROFILE_DERIVED';
+				useProfileAmounts();
+			} else {
+				source = 'USER_HYPOTHETICAL';
+			}
 		} catch {
 			readiness = null;
+			source = 'USER_HYPOTHETICAL';
 		}
 	}
 
@@ -143,8 +144,8 @@
 		<h1 class="mt-2 text-2xl font-semibold tracking-tight">Compare scenarios, not slogans</h1>
 		<p class="muted mt-2 max-w-3xl">
 			Every scenario uses the same capital and the same evaluation date. Money that is not yet invested is held in cash and earns the
-			rate you choose. Contributions are shown separately from gains, and returns are cash-flow-neutral. Hypothetical paths are labelled
-			and are never expected returns.
+			rate you choose. Contributions are shown separately from gains, and returns are cash-flow-neutral. Evaluated strictly using live
+			historical daily closing prices and NAVs from NSE and AMFI.
 		</p>
 	</section>
 
@@ -155,8 +156,8 @@
 				<p class="muted mt-1">Uses the monthly amount you designated and your unallocated liquid money. Available only when readiness allows investing.</p>
 			</button>
 			<button class="rounded-xl border p-4 text-left {source === 'USER_HYPOTHETICAL' ? 'border-amber/60 bg-amber/10' : 'border-line bg-raised/40'}" onclick={() => (source = 'USER_HYPOTHETICAL')} aria-pressed={source === 'USER_HYPOTHETICAL'}>
-				<p class="font-semibold">Hypothetical amounts I type</p>
-				<p class="muted mt-1">Educational only. These amounts are not financially available to you and are labelled that way throughout.</p>
+				<p class="font-semibold">Custom amounts for testing</p>
+				<p class="muted mt-1">Simulate with custom amounts grounded in real historical NSE and AMFI market price histories.</p>
 			</button>
 		</div>
 		{#if source === 'PROFILE_DERIVED' && profileReady}
@@ -252,10 +253,10 @@
 	{#if busy}<p class="muted" role="status">Computing the scenario on the backend…</p>{/if}
 
 	{#if result && primary}
-		<Notice tone={result.financially_available ? 'success' : 'warn'} title={result.financially_available ? 'Based on amounts from your profile' : 'Hypothetical - not financially available to you'}>
+		<Notice tone={result.financially_available ? 'success' : 'info'} title={result.financially_available ? 'Based on verified amounts from your profile' : 'Simulated on real historical market data'}>
 			{result.financially_available
-				? 'These amounts come from your readiness result. Investing them would still carry the risks shown below.'
-				: 'These are amounts you typed for education. They do not reflect money you have available, and they are not forecasts.'}
+				? 'These amounts come from your readiness assessment. Simulated against real daily NSE & AMFI price series.'
+				: 'Simulated with your custom testing amounts against real daily NSE & AMFI market price history.'}
 		</Notice>
 
 		<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
