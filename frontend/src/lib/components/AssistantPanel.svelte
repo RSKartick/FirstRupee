@@ -87,20 +87,20 @@
 	}
 </script>
 
-<div class="fixed inset-0 z-50 flex justify-end bg-black/60 no-print" role="dialog" aria-modal="true" aria-label="FirstRupee assistant">
-	<div class="flex h-full w-full max-w-xl flex-col border-l border-line bg-canvas">
+<div class="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs no-print" role="dialog" aria-modal="true" aria-label="FirstRupee assistant">
+	<div class="flex h-full w-full max-w-xl flex-col border-l border-line bg-panel shadow-2xl">
 		<div class="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
 			<div>
-				<p class="text-sm font-semibold">FirstRupee AI Chatbot</p>
-				<p class="muted mt-0.5">Ask about finance, stocks, mutual funds, taxes, market concepts, basic questions, or your personal portfolio.</p>
+				<p class="text-sm font-bold text-ink">FirstRupee AI Chatbot</p>
+				<p class="muted mt-0.5 text-xs">Ask about finance, stocks, mutual funds, taxes, market concepts, basic questions, or your personal portfolio.</p>
 			</div>
 			<div class="flex shrink-0 items-center gap-1.5">
 				{#if entries.length > 0}
-					<button class="btn btn-ghost !px-2.5 !py-1.5 text-[12px]" onclick={clearHistory} title="Clear conversation history" aria-label="Clear conversation history">
+					<button class="btn btn-ghost !px-2.5 !py-1.5 text-[12px] text-muted hover:text-ink" onclick={clearHistory} title="Clear conversation history" aria-label="Clear conversation history">
 						<Trash2 size={14} />Clear
 					</button>
 				{/if}
-				<button class="btn btn-ghost" onclick={onclose} aria-label="Close assistant"><X size={16} /></button>
+				<button class="btn btn-ghost !px-2 !py-1.5 text-muted hover:text-ink" onclick={onclose} aria-label="Close assistant"><X size={16} /></button>
 			</div>
 		</div>
 
@@ -110,26 +110,26 @@
 			{:else if entries.length === 0}
 				<div class="flex flex-wrap gap-2">
 					{#each suggestions as suggestion (suggestion)}
-						<button class="btn text-[12px]" onclick={() => send(suggestion)}>{suggestion}</button>
+						<button class="btn text-[12px] bg-raised/50 hover:bg-raised hover:border-brand/40 text-muted hover:text-ink transition-all" onclick={() => send(suggestion)}>{suggestion}</button>
 					{/each}
 				</div>
 			{/if}
 			{#each entries as entry, i (i)}
 				<div class="flex {entry.role === 'user' ? 'justify-end' : 'justify-start'}">
-					<div class="max-w-[85%] whitespace-pre-wrap rounded-xl px-4 py-3 text-[13px] leading-relaxed {entry.role === 'user' ? 'bg-brand/15' : 'border border-line bg-raised/60'}">
+					<div class="max-w-[85%] whitespace-pre-wrap px-4 py-3 text-[13px] leading-relaxed shadow-xs {entry.role === 'user' ? 'bg-brand/15 border border-brand/30 text-ink rounded-2xl rounded-tr-sm' : 'border border-line bg-raised/80 text-ink rounded-2xl rounded-tl-sm'}">
 						{entry.content}
 						{#if entry.meta && entry.meta.mode}
-							<p class="mt-2 text-[11px] text-muted">{entry.meta.mode === 'LLM' ? `Language model (${entry.meta.provider})` : entry.meta.provider === 'domain-guardrail' ? 'Financial domain guardrail' : 'Deterministic engine'}</p>
+							<p class="mt-2 text-[10.5px] font-medium tracking-wide uppercase text-muted">{entry.meta.mode === 'LLM' ? `FirstRupee AI (${entry.meta.provider})` : 'FirstRupee Engine'}</p>
 						{/if}
 					</div>
 				</div>
 			{/each}
-			{#if busy}<p class="muted">Thinking...</p>{/if}
+			{#if busy}<p class="muted text-xs flex items-center gap-1.5 font-mono"><span class="text-brand-soft animate-pulse font-bold">&gt;</span> Thinking...</p>{/if}
 			{#if error}<p class="field-error" role="alert">{error}</p>{/if}
 		</div>
 
 		<form
-			class="flex items-center gap-2 border-t border-line px-5 py-4"
+			class="flex items-center gap-2 border-t border-line px-5 py-4 bg-canvas/40"
 			onsubmit={(event) => {
 				event.preventDefault();
 				void send(draft);
@@ -137,7 +137,7 @@
 		>
 			<label class="sr-only" for="assistant-input">Ask the assistant</label>
 			<input id="assistant-input" class="field-input" bind:value={draft} placeholder="Ask anything about finance, markets, or a general question..." maxlength="2000" />
-			<button class="btn btn-primary" type="submit" disabled={busy || draft.trim() === ''}><Send size={16} />Send</button>
+			<button class="btn btn-primary font-semibold !px-4" type="submit" disabled={busy || draft.trim() === ''}><Send size={15} />Send</button>
 		</form>
 	</div>
 </div>

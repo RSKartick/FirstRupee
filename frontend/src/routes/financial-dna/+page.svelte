@@ -61,7 +61,7 @@
 			</p>
 			<div class="mt-4 flex flex-wrap items-center gap-2">
 				<StatusBadge status={readiness.status} />
-				<span class="rounded-full border border-brand/40 bg-brand/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-soft">
+				<span class="rounded border border-brand/40 bg-brand/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-soft">
 					Experience: {labelize(experience)}
 				</span>
 				<span class="text-[11px] text-muted">Rule set {readiness.rule_version}</span>

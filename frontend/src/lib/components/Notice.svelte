@@ -9,10 +9,10 @@
 	}: { tone?: 'info' | 'warn' | 'danger' | 'success'; title?: string; children: Snippet } = $props();
 
 	const palette = {
-		info: 'border-azure/40 bg-azure/10 text-azure',
-		warn: 'border-amber/40 bg-amber/10 text-amber',
-		danger: 'border-danger/40 bg-danger/10 text-danger',
-		success: 'border-brand/40 bg-brand/10 text-brand-soft'
+		info: 'border-line bg-raised/80 text-ink',
+		warn: 'border-amber/30 bg-raised/80 text-amber',
+		danger: 'border-danger/30 bg-raised/80 text-danger',
+		success: 'border-brand/30 bg-raised/80 text-brand-soft'
 	};
 </script>
 

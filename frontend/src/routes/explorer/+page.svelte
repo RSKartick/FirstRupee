@@ -165,7 +165,7 @@
 						<h2 class="!text-[15px]">{a.name}</h2>
 						<p class="muted mt-0.5 text-[11px]">{a.symbol} · {TYPE_LABEL[a.asset_type] ?? labelize(a.asset_type)}</p>
 					</div>
-					<span class="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] uppercase {a.volatility_class === 'LOW' ? 'border-brand/40 text-brand-soft' : a.volatility_class === 'MODERATE' ? 'border-amber/40 text-amber' : 'border-danger/40 text-danger'}">{a.volatility_class} volatility</span>
+					<span class="shrink-0 whitespace-nowrap rounded border px-2.5 py-0.5 text-[10px] uppercase {a.volatility_class === 'LOW' ? 'border-brand/40 text-brand-soft' : a.volatility_class === 'MODERATE' ? 'border-amber/40 text-amber' : 'border-danger/40 text-danger'}">{a.volatility_class} volatility</span>
 				</div>
 
 				{#if recItem}

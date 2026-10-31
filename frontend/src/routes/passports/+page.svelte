@@ -56,6 +56,17 @@
 <svelte:head><title>Decision Passports - FirstRupee</title></svelte:head>
 
 <div class="space-y-6">
+	<div class="rounded-lg border border-brand/40 bg-brand/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+		<div class="space-y-1">
+			<span class="text-xs font-mono font-bold text-brand-soft uppercase">Feature Evolution</span>
+			<p class="text-sm font-semibold text-ink">Schemes Hub is now live in place of Passports</p>
+			<p class="text-xs text-muted">Explore sovereign Indian investment schemes (PPF, NPS, SSY, SCSS, SGB) with personalized eligibility evaluation and live compounding simulators.</p>
+		</div>
+		<a class="btn btn-primary whitespace-nowrap !px-4 !py-2 text-xs font-semibold" href="/schemes">
+			Open Schemes Hub &rarr;
+		</a>
+	</div>
+
 	<section class="card grain">
 		<div class="flex flex-wrap items-start justify-between gap-4">
 			<div>

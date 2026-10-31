@@ -93,7 +93,7 @@
 		<Card title="Market context" subtitle="Historical statistics computed from daily price/NAV observations.">
 			{#if market}
 				<div class="mb-4 flex flex-wrap items-center gap-2">
-					<span class="shrink-0 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase {readinessTone(market.status) === 'success' ? 'border-brand/40 text-brand-soft' : readinessTone(market.status) === 'warn' ? 'border-amber/40 text-amber' : 'border-line text-muted'}">{market.status}</span>
+					<span class="shrink-0 whitespace-nowrap rounded border px-2.5 py-0.5 text-[11px] uppercase {readinessTone(market.status) === 'success' ? 'border-brand/40 text-brand-soft' : readinessTone(market.status) === 'warn' ? 'border-amber/40 text-amber' : 'border-line text-muted'}">{market.status}</span>
 					<span class="muted">{market.note ?? ''}</span>
 				</div>
 				{#if market.status === 'OK'}
@@ -122,7 +122,7 @@
 					<article class="rounded-xl border border-line bg-raised/40 p-4">
 						<div class="flex flex-wrap items-center gap-2">
 							<code class="rounded bg-canvas px-1.5 py-0.5 text-[11px] text-brand-soft">{e.evidence_key}</code>
-							<span class="rounded-full border border-brand/40 px-2 py-0.5 text-[10px] uppercase text-brand-soft">{e.verification_status}</span>
+							<span class="rounded border border-brand/40 px-2 py-0.5 text-[10px] uppercase text-brand-soft">{e.verification_status}</span>
 							<span class="text-[11px] text-muted">{labelize(e.source_type)}{e.period ? ` · ${e.period}` : ''}</span>
 							<span class="ml-auto text-[11px] text-muted">Published {dateLabel(e.publication_date)}</span>
 						</div>

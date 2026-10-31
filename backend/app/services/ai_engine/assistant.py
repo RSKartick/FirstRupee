@@ -225,13 +225,12 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
     prof = ctx.get("investor_profile")
     grounding: list[str] = []
     if readiness:
-        m = readiness["metrics"]
-        grounding.append(f"Readiness {readiness['status']} ({readiness['rule_version']}); surplus {fmt_inr(D(m['monthly_surplus']))}.")
+        m = readiness.get("metrics") or {}
+        rule_ver = readiness.get("rule_version", "2026.1")
+        surplus_val = m.get("monthly_surplus", 0)
+        grounding.append(f"Readiness {readiness.get('status', 'UNASSESSED')} ({rule_ver}); surplus {fmt_inr(D(surplus_val))}.")
 
-    if not is_financial_query(question):
-        return NON_FINANCIAL_REFUSAL, grounding
-
-    # 0. Basic greetings, small talk, and identity questions (without parroting user profile)
+    # 0. Basic greetings, small talk, and identity questions
     if re.match(r"^(hi|hello|hey|hii+|yo|good\s+(morning|afternoon|evening)|namaste|sup|what'?s\s+up)[\s!?.]*$", q):
         return (
             "Hey there! I am your FirstRupee assistant. You can ask me anything about finance and investing - such as stocks, "
@@ -239,15 +238,43 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
             "questions about your personal financial profile whenever you need."
         ), grounding
 
-    if re.search(r"\b(how are you|how's it going|how r u|who are you|what are you|what can you do)\b", q):
+    if re.search(r"\b(how are you|how's it going|how r u|who are you|what are you|what can you do|who made you)\b", q):
         return (
-            "I am doing well! I am an AI assistant focused primarily on finance, markets, and personal money management, "
-            "and I can also help with everyday questions. Ask me about Indian stocks, ETFs, mutual funds, tax rules, financial "
+            "I am doing well! I am the FirstRupee AI Assistant, focused on finance, markets, and personal money management, "
+            "while also ready to help with everyday questions. Ask me about Indian stocks, ETFs, mutual funds, tax rules, financial "
             "concepts, or your own portfolio plan."
         ), grounding
 
     if re.match(r"^(ok|okay|k|cool|got it|understood|thanks|thank you|thx|nice|great)[\s!?.]*$", q):
         return "Glad that helped! Let me know what you would like to explore next - whether it is a market topic, a specific stock or fund, or another question.", grounding
+
+    # Basic math questions (e.g., 2+2)
+    math_match = re.search(r"^\s*(\d+(?:\.\d+)?)\s*([\+\-\*\/])\s*(\d+(?:\.\d+)?)\s*=?\s*\??$", q)
+    if math_match:
+        n1, op, n2 = float(math_match.group(1)), math_match.group(2), float(math_match.group(3))
+        res = n1 + n2 if op == '+' else n1 - n2 if op == '-' else n1 * n2 if op == '*' else (n1 / n2 if n2 != 0 else 'undefined')
+        return f"{math_match.group(1)} {op} {math_match.group(3)} = {res}. Let me know if you need any other calculations or financial estimates!", grounding
+
+    # Personal recall questions (e.g. "how much salray did i just mentioned?", "what did i mention?", "what is my income?")
+    if (prof or readiness) and re.search(r"\b(salray|salary|salery|my income|my salary|my earning|my earnings|my surplus|my expense|my expenses|my outflow|my outflows|my emi|my emis|my debt|my debts|my saving|my savings|my reserve|my reserves|did i mention|just mention|just mentioned|what did i say|what did i enter|what did i tell you)\b", q):
+        if prof:
+            m = (readiness or {}).get("metrics") or {}
+            inc = prof.get("monthly_income") or 0
+            ess = prof.get("essential_expenses") or 0
+            noness = prof.get("nonessential_expenses") or 0
+            emi = prof.get("monthly_emi") or 0
+            surplus = m.get("monthly_surplus") if "monthly_surplus" in m else (D(inc) - D(ess) - D(noness) - D(emi))
+            inv_monthly = m.get("investable_monthly", surplus)
+            return (
+                f"From your recorded profile ({prof.get('display_name')}):\n"
+                f"- Monthly income / salary: {fmt_inr(D(inc))}\n"
+                f"- Essential living expenses: {fmt_inr(D(ess))}/month\n"
+                f"- Non-essential discretionary spending: {fmt_inr(D(noness))}/month\n"
+                f"- Monthly loan EMIs: {fmt_inr(D(emi))}/month\n"
+                f"- Monthly surplus: {fmt_inr(D(surplus))}/month\n"
+                f"- Free investable monthly capacity: {fmt_inr(D(inv_monthly))}/month\n"
+                f"- Emergency liquid savings: {fmt_inr(D(prof.get('emergency_reserves') or 0))}"
+            ), grounding
 
     # 1. Check if the user is asking about a specific instrument by name/ticker
     for pat, sym in _ASSET_KEYWORDS:
@@ -332,19 +359,21 @@ def _deterministic(question: str, ctx: dict[str, Any], history: list[dict[str, s
         m = readiness["metrics"]
         rec = readiness.get("recommendations") or {}
         mp = rec.get("monthly_plan") or {}
-        steps = "; ".join(readiness["improvement_steps"][:3])
-        blockers = "; ".join(readiness["blockers"]) or "none"
-        warnings = "; ".join(readiness["warnings"]) or "none"
+        steps = "; ".join((readiness.get("improvement_steps") or [])[:3]) or "None"
+        blockers = "; ".join(readiness.get("blockers") or []) or "none"
+        warnings = "; ".join(readiness.get("warnings") or []) or "none"
+        monthly_inc = m.get("monthly_income") or (prof.get("monthly_income") if prof else 0) or 0
+        committed = m.get("committed_outflow") or 0
         return (
-            f"Yes - your readiness status is {readiness['status']}."
-            if readiness["status"] == "READY_TO_EXPLORE"
-            else f"Your current readiness status is {readiness['status']}."
+            f"Yes - your readiness status is {readiness.get('status', 'UNASSESSED')}."
+            if readiness.get("status") == "READY_TO_EXPLORE"
+            else f"Your current readiness status is {readiness.get('status', 'UNASSESSED')}."
         ) + (
             f"\n\nKey figures from your profile:\n"
-            f"- Monthly surplus: {fmt_inr(D(m['monthly_surplus']))}/month (from {fmt_inr(D(m['monthly_income']))} income minus {fmt_inr(D(m['committed_outflow']))} outflows)\n"
-            f"- Emergency coverage: {m.get('emergency_coverage_months') or 'n/a'} months of essential expenses ({fmt_inr(D(m['emergency_reserves']))} saved vs {fmt_inr(D(m['emergency_target']))} 6-month target)\n"
-            f"- Free investable capacity: {fmt_inr(D(m['investable_monthly']))}/month (recommended market SIP: {fmt_inr(D(mp.get('recommended_market_deployment_inr', '0')))}/month)\n"
-            f"- Risk Capacity: {m.get('risk_capacity_band')} (score {m.get('risk_capacity_score')}) | Risk Tolerance: {m.get('risk_tolerance_band')} (score {m.get('risk_tolerance_score')})\n"
+            f"- Monthly surplus: {fmt_inr(D(m.get('monthly_surplus', 0)))}/month (from {fmt_inr(D(monthly_inc))} income minus {fmt_inr(D(committed))} outflows)\n"
+            f"- Emergency coverage: {m.get('emergency_coverage_months') or 'n/a'} months of essential expenses ({fmt_inr(D(m.get('emergency_reserves', 0)))} saved vs {fmt_inr(D(m.get('emergency_target', 0)))} 6-month target)\n"
+            f"- Free investable capacity: {fmt_inr(D(m.get('investable_monthly', 0)))}/month (recommended market SIP: {fmt_inr(D(mp.get('recommended_market_deployment_inr', '0')))}/month)\n"
+            f"- Risk Capacity: {m.get('risk_capacity_band', 'Standard')} (score {m.get('risk_capacity_score', 'n/a')}) | Risk Tolerance: {m.get('risk_tolerance_band', 'Moderate')} (score {m.get('risk_tolerance_score', 'n/a')})\n"
             f"- Blockers: {blockers} | Warnings: {warnings}\n\n"
             f"Next steps: {steps}"
         ), grounding
@@ -468,15 +497,15 @@ def _compact_profile_reference(ctx: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def answer(messages: list[dict[str, str]], ctx: dict[str, Any]) -> dict[str, Any]:
-    question = messages[-1]["content"]
+    question = messages[-1]["content"].strip()
     settings = get_settings()
     guardrails = ["FirstRupee is educational decision support, not investment advice, and does not execute trades."]
 
-    if not is_financial_query(question):
+    if not question:
         return {
-            "answer": NON_FINANCIAL_REFUSAL,
+            "answer": "How can I help you today? You can ask about financial concepts, Indian stocks and mutual funds, or your personal portfolio.",
             "mode": "DETERMINISTIC",
-            "provider": "domain-guardrail",
+            "provider": "deterministic",
             "grounding": [],
             "guardrails": guardrails,
         }

@@ -63,7 +63,7 @@
 		<figcaption class="mt-2 flex flex-wrap gap-x-5 gap-y-1">
 			{#each series as s (s.label)}
 				<span class="flex items-center gap-2 text-[11px] text-muted">
-					<span class="inline-block h-2 w-4 rounded-full" style="background:{s.color}"></span>{s.label}
+					<span class="inline-block h-0.5 w-3.5" style="background:{s.color}"></span>{s.label}
 				</span>
 			{/each}
 		</figcaption>

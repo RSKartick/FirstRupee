@@ -392,3 +392,64 @@ export interface ChatHistoryItem {
 	meta?: Partial<ChatResponse> | null;
 	created_at: string;
 }
+
+export interface Scheme {
+	id: string;
+	name: string;
+	short_name: string;
+	authority: string;
+	category: string;
+	interest_rate_pct: number;
+	is_market_linked: boolean;
+	rate_description: string;
+	compounding_frequency: string;
+	payout_frequency: string;
+	min_investment: number;
+	max_investment_annual: number | null;
+	lock_in_years: number;
+	lock_in_description: string;
+	tax_treatment: 'EEE' | 'EET' | 'TAXABLE_INTEREST' | 'CAPITAL_GAINS_EXEMPT';
+	tax_section: string;
+	tax_summary: string;
+	sovereign_backed: boolean;
+	liquidity_notes: string;
+	target_demographic: string;
+	eligibility_summary: string;
+	fiduciary_role: string;
+	pros: string[];
+	cons: string[];
+}
+
+export interface SchemeScheduleYear {
+	year: number;
+	opening_balance: number;
+	deposited_this_year: number;
+	interest_this_year: number;
+	closing_balance: number;
+}
+
+export interface SchemeCalculation {
+	scheme: Scheme;
+	horizon_years: number;
+	monthly_deposit: number;
+	lump_sum: number;
+	total_principal_deposited: number;
+	total_interest_earned: number;
+	gross_maturity_amount: number;
+	tax_saved_annual: number;
+	total_tax_saved_over_horizon: number;
+	taxable_interest_liability: number;
+	net_proceeds_after_tax: number;
+	effective_cagr_pct: number;
+	schedule: SchemeScheduleYear[];
+}
+
+export interface SchemeEvaluation {
+	scheme: Scheme;
+	fit_score: number;
+	fit_tier: 'HIGH_CONVICTION' | 'SUITABLE' | 'OPTIONAL';
+	suggested_monthly_inr: number;
+	fit_reasons: string[];
+	cautions: string[];
+	firstrupee_role: string;
+}

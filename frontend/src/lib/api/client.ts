@@ -12,6 +12,9 @@ import type {
 	Readiness,
 	ResearchAnalysis,
 	ResearchListItem,
+	Scheme,
+	SchemeCalculation,
+	SchemeEvaluation,
 	Simulation,
 	SessionUser,
 	Timing
@@ -150,6 +153,15 @@ export const api = {
 		request<{ passport: Passport }>('POST', '/passport/generate', payload),
 	getPassport: (id: number) => request<{ passport: Passport }>('GET', `/passport/${id}`),
 	listPassports: (profileId: number) => request<{ passports: PassportSummary[] }>('GET', `/passport/profile/${profileId}`),
+
+	listSchemes: (category?: string) =>
+		request<{ schemes: Scheme[]; count: number; total: number }>('GET', `/schemes${category ? `?category=${encodeURIComponent(category)}` : ''}`),
+	getScheme: (schemeId: string) =>
+		request<{ scheme: Scheme }>('GET', `/schemes/${schemeId}`),
+	calculateScheme: (payload: { scheme_id: string; monthly_deposit?: number; lump_sum?: number; horizon_years?: number; tax_bracket_pct?: number }) =>
+		request<{ calculation: SchemeCalculation }>('POST', '/schemes/calculate', payload),
+	evaluateSchemesForProfile: (profileId: number) =>
+		request<{ profile_id: number; display_name: string; evaluations: SchemeEvaluation[] }>('GET', `/schemes/profile/${profileId}`),
 
 	assistantHistory: () => request<{ messages: ChatHistoryItem[] }>('GET', '/assistant/history'),
 	clearAssistantHistory: () => request<void>('DELETE', '/assistant/history'),

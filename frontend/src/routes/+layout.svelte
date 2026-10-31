@@ -8,7 +8,7 @@
 	import {
 		Activity,
 		FlaskConical,
-		FileText,
+		Landmark,
 		LayoutDashboard,
 		LogOut,
 		MessageCircle,
@@ -28,7 +28,7 @@
 		{ href: '/research', label: 'Research', icon: FlaskConical },
 		{ href: '/timing', label: 'Three Clocks', icon: Clock },
 		{ href: '/simulator', label: 'Simulator', icon: Activity },
-		{ href: '/passports', label: 'Passports', icon: FileText }
+		{ href: '/schemes', label: 'Schemes', icon: Landmark }
 	];
 
 	let assistantOpen = $state(false);
@@ -69,23 +69,23 @@
 
 <div class="min-h-screen bg-canvas">
 	{#if !isPublic}
-		<header class="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur no-print">
-			<div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-				<a href="/dashboard" class="flex items-center gap-2.5">
-					<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/15 text-sm font-bold text-brand-soft">₹1</span>
+		<header class="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur-md no-print">
+			<div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+				<a href="/dashboard" class="flex items-center gap-3 transition-opacity hover:opacity-90">
+					<img src="/logo.png" alt="FirstRupee Logo" class="h-9 w-auto object-contain" />
 					<span class="leading-tight">
-						<span class="block text-sm font-semibold">FirstRupee</span>
-						<span class="hidden text-[10px] uppercase tracking-[0.14em] text-muted sm:block">Decision intelligence</span>
+						<span class="block text-[15px] font-bold tracking-tight text-ink">FirstRupee</span>
+						<span class="hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-soft sm:block">Decision Intelligence</span>
 					</span>
 				</a>
 
-				<nav class="scroll-x ml-auto flex items-center gap-1 overflow-x-auto" aria-label="Main">
+				<nav class="scroll-x flex items-center gap-1.5 overflow-x-auto" aria-label="Main">
 					{#each NAV as item (item.href)}
 						{@const Icon = item.icon}
 						<a
 							href={item.href}
 							aria-current={isActive(item.href) ? 'page' : undefined}
-							class="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors {isActive(item.href) ? 'bg-raised text-brand-soft' : 'text-muted hover:bg-raised/60 hover:text-ink'}"
+							class="flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors {isActive(item.href) ? 'bg-raised text-ink border border-line font-medium' : 'text-muted hover:bg-raised/60 hover:text-ink'}"
 						>
 							<Icon size={14} />{item.label}
 						</a>
@@ -93,23 +93,25 @@
 				</nav>
 
 				<div class="flex items-center gap-2">
+					<div class="hidden items-center gap-1.5 rounded border border-line bg-raised px-2 py-0.5 text-[11px] font-mono xl:flex">
+						<span class="text-brand-soft font-semibold">LIVE</span>
+						<span class="text-muted">FEEDS</span>
+					</div>
 					{#if session.profiles.length > 0}
 						<label class="sr-only" for="profile-switch">Active profile</label>
-						<select id="profile-switch" class="field-input !w-auto !py-1.5 text-[13px]" value={session.activeProfileId ?? ''} onchange={onProfileChange}>
+						<select id="profile-switch" class="field-input !w-auto !py-1.5 !px-2.5 text-[12.5px] font-medium" value={session.activeProfileId ?? ''} onchange={onProfileChange}>
 							{#each session.profiles as profile (profile.id)}
 								<option value={profile.id}>{profile.display_name}</option>
 							{/each}
 						</select>
 					{/if}
-					<button class="btn !px-3 !py-1.5 text-[13px]" onclick={() => (assistantOpen = true)}><MessageCircle size={14} />Ask</button>
-					<button class="btn btn-ghost !px-2 !py-1.5" onclick={onSignOut} aria-label="Sign out"><LogOut size={16} /></button>
+					<button class="btn !px-3 !py-1.5 text-[12.5px] font-semibold" onclick={() => (assistantOpen = true)}>
+						<MessageCircle size={14} class="text-brand-soft" />Ask
+					</button>
+					<button class="btn btn-ghost !px-2 !py-1.5 text-muted hover:text-ink" onclick={onSignOut} aria-label="Sign out">
+						<LogOut size={16} />
+					</button>
 				</div>
-			</div>
-			<div class="mx-auto max-w-7xl px-4 pb-2 text-[11px] text-muted sm:px-6">
-				{#if session.user}
-					Signed in as {session.user.display_name}.
-				{/if}
-				Every figure is computed by the deterministic backend engines using live NSE and AMFI market data.
 			</div>
 		</header>
 	{/if}
@@ -122,12 +124,18 @@
 		{/if}
 	</main>
 
-	<footer class="mt-12 border-t border-line no-print">
-		<div class="mx-auto max-w-7xl space-y-2 px-4 py-8 text-[12px] leading-relaxed text-muted sm:px-6">
-			<p class="font-medium text-ink">FirstRupee is educational decision support, not a brokerage or trade execution platform.</p>
-			<p>
-				Market data is sourced live from public NSE / Yahoo Finance feeds and AMFI mutual fund NAV disclosures (MFAPI.in).
-				All readiness classifications, risk scores and numerical portfolio allocations are deterministic rule-based calculations.
+	<footer class="mt-16 border-t border-line/60 bg-raised/20 no-print">
+		<div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 text-[12px] text-muted sm:flex-row sm:px-6">
+			<div class="flex items-center gap-3">
+				<img src="/logo.png" alt="FirstRupee Logo" class="h-6 w-auto opacity-80 object-contain" />
+				<div>
+					<p class="font-semibold text-ink">FirstRupee — Educational Decision Support</p>
+					<p class="text-[11px] text-muted">Not a brokerage or trade execution platform.</p>
+				</div>
+			</div>
+			<p class="text-center text-[11px] sm:text-right text-muted max-w-md">
+				Market data sourced live from public NSE / Yahoo Finance feeds and AMFI disclosures (MFAPI.in).
+				Rule-based deterministic engine.
 			</p>
 		</div>
 	</footer>

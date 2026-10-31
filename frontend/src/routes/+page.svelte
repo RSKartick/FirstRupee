@@ -28,7 +28,10 @@
 <div class="space-y-16">
 	<section class="card !p-10 sm:!p-14">
 		<div class="max-w-3xl">
-			<p class="text-[12px] font-semibold uppercase tracking-[0.2em] text-brand-soft">Educational decision support</p>
+			<div class="mb-6 flex items-center gap-3">
+				<img src="/logo.png" alt="FirstRupee Logo" class="h-12 w-auto object-contain" />
+				<span class="rounded border border-brand/40 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-soft">Educational Decision Intelligence</span>
+			</div>
 			<h1 class="mt-4 text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl">
 				Understand your money<span class="block text-brand-soft">before you risk it.</span>
 			</h1>
@@ -73,24 +76,42 @@
 			</div>
 		</div>
 		<div class="grid gap-4 md:grid-cols-3">
-			<div class="rounded-xl border border-line bg-raised/40 p-5">
-				<p class="font-semibold">Rahul - Constrained Early-Career Saver (NOT READY)</p>
-				<p class="muted mt-2">Rs 30,000 income, Rs 4,000 surplus, 1 month of essentials in reserve and a 10-month goal. Shows why liquid reserves come before market exposure.</p>
-				<button class="btn btn-primary mt-4" onclick={() => loadDemo('rahul')} disabled={busy !== ''}>
+			<div class="flex flex-col justify-between rounded-xl border border-line bg-raised/40 p-5 transition-all hover:border-danger/40">
+				<div>
+					<div class="flex items-center justify-between gap-2">
+						<p class="font-bold text-ink">Rahul Sharma</p>
+						<span class="badge-pill border-danger/40 bg-danger/10 text-danger">Not Ready</span>
+					</div>
+					<p class="text-[12px] font-medium text-brand-soft mt-1">Constrained Early-Career Saver</p>
+					<p class="muted mt-2 text-[12.5px]">₹30,000 income, ₹4,000 surplus, 1.0 month emergency reserve, and a 10-month goal. Demonstrates why liquid emergency reserves must come before market risk.</p>
+				</div>
+				<button class="btn btn-primary w-full mt-5 font-semibold" onclick={() => loadDemo('rahul')} disabled={busy !== ''}>
 					{busy === 'rahul' ? 'Opening workspace...' : 'Open Rahul Workspace'}
 				</button>
 			</div>
-			<div class="rounded-xl border border-line bg-raised/40 p-5">
-				<p class="font-semibold">Priya - Ready to Explore (Beginner Mode)</p>
-				<p class="muted mt-2">Rs 80,000 income, Rs 40,000 surplus, 8.3 months of reserves and a 10-year goal. Shows beginner-friendly plain-English textual and numerical allocations.</p>
-				<button class="btn btn-primary mt-4" onclick={() => loadDemo('priya')} disabled={busy !== ''}>
+			<div class="flex flex-col justify-between rounded-xl border border-line bg-raised/40 p-5 transition-all hover:border-brand/40">
+				<div>
+					<div class="flex items-center justify-between gap-2">
+						<p class="font-bold text-ink">Priya Patel</p>
+						<span class="badge-pill border-brand/40 bg-brand/10 text-brand-soft">Ready To Explore</span>
+					</div>
+					<p class="text-[12px] font-medium text-brand-soft mt-1">First-Time Systematic Investor</p>
+					<p class="muted mt-2 text-[12.5px]">₹80,000 income, ₹40,000 surplus, 8.3 months reserves, and a 10-year horizon. Demonstrates beginner-tailored Plain English index &amp; bond allocations.</p>
+				</div>
+				<button class="btn btn-primary w-full mt-5 font-semibold" onclick={() => loadDemo('priya')} disabled={busy !== ''}>
 					{busy === 'priya' ? 'Opening workspace...' : 'Open Priya Workspace'}
 				</button>
 			</div>
-			<div class="rounded-xl border border-line bg-raised/40 p-5">
-				<p class="font-semibold">Arjun - Experienced Portfolio Builder (Quant Mode)</p>
-				<p class="muted mt-2">Rs 1,50,000 income, zero debt, Rs 2,00,000 unallocated liquid capital, and Experienced mode enabled. Classifies as PREPARATION due to an ambitious Rs 1.2 Cr retirement goal that needs slightly more than his monthly surplus.</p>
-				<button class="btn btn-primary mt-4" onclick={() => loadDemo('arjun')} disabled={busy !== ''}>
+			<div class="flex flex-col justify-between rounded-xl border border-line bg-raised/40 p-5 transition-all hover:border-amber/40">
+				<div>
+					<div class="flex items-center justify-between gap-2">
+						<p class="font-bold text-ink">Arjun Mehta</p>
+						<span class="badge-pill border-amber/40 bg-amber/10 text-amber">Preparation</span>
+					</div>
+					<p class="text-[12px] font-medium text-amber mt-1">Experienced Portfolio Builder</p>
+					<p class="muted mt-2 text-[12.5px]">₹1,50,000 income, zero debt, ₹2,00,000 liquid capital, in Experienced Quant mode. Demonstrates goal liquidity constraints and satellite stock allocations.</p>
+				</div>
+				<button class="btn btn-primary w-full mt-5 font-semibold" onclick={() => loadDemo('arjun')} disabled={busy !== ''}>
 					{busy === 'arjun' ? 'Opening workspace...' : 'Open Arjun Workspace'}
 				</button>
 			</div>

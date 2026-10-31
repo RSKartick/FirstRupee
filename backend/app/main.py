@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app import __version__
-from app.api.routes import analysis, auth, catalog, profile
+from app.api.routes import analysis, auth, catalog, profile, schemes
 from app.core.config import get_settings
 from app.core.errors import DomainError
 from app.db.migrate import database_startup_lock, run_migrations
@@ -78,7 +78,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=500, content={"detail": "Something went wrong. The incident has been logged."})
 
     for module in (auth, profile, analysis.readiness_router, catalog, analysis.timing_router, analysis.research_router,
-                   analysis.simulator_router, analysis.passport_router, analysis.assistant_router):
+                   analysis.simulator_router, analysis.passport_router, analysis.assistant_router, schemes.schemes_router):
         router = getattr(module, "router", module)
         app.include_router(router, prefix="/api")
 
