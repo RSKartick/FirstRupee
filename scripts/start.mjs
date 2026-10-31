@@ -13,8 +13,28 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const backendDir = path.join(root, 'backend');
 const frontendDir = path.join(root, 'frontend');
-const venvPython = path.join(backendDir, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
-const python = existsSync(venvPython) ? venvPython : process.env.PYTHON ?? 'python3';
+
+const venvSubdir = process.platform === 'win32' ? 'Scripts' : 'bin';
+const pythonExe = process.platform === 'win32' ? 'python.exe' : 'python';
+
+const candidatePythons = [
+	path.join(backendDir, '.venv', venvSubdir, pythonExe),
+	path.join(root, '.venv', venvSubdir, pythonExe)
+];
+
+let python = candidatePythons.find((p) => existsSync(p));
+
+if (!python) {
+	if (process.env.PYTHON) {
+		python = process.env.PYTHON;
+	} else {
+		const pipPath = process.platform === 'win32' ? '.venv\\Scripts\\pip' : '.venv/bin/pip';
+		console.warn('\nNotice: Backend virtual environment was not found in backend/.venv.');
+		console.warn('Run these commands to set up the backend dependencies:');
+		console.warn(`  cd backend; python -m venv .venv; ${pipPath} install -r requirements.txt; cd ..\n`);
+		python = process.platform === 'win32' ? 'python' : 'python3';
+	}
+}
 const buildEntry = path.join(frontendDir, 'build', 'index.js');
 
 if (!existsSync(buildEntry)) {

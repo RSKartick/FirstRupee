@@ -78,12 +78,7 @@ npm --prefix frontend ci
 # 3. Create backend virtual environment and install dependencies:
 cd backend
 python -m venv .venv
-
-# If script execution is restricted in PowerShell, permit the session:
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+.venv\Scripts\pip install -r requirements.txt
 cd ..
 
 # 4. Build the frontend:
@@ -99,6 +94,8 @@ npm run start
   This error happens if PowerShell is open in the parent folder (for example `C:\Users\...\Desktop\graviton`) instead of the project directory. Use `dir` or `ls` to find the `FirstRupee` folder, then run `cd FirstRupee` before executing npm commands.
 - **Python script execution blocked**:
   If PowerShell says running scripts is disabled on this system when running `Activate.ps1`, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in the current terminal window.
+- **Python error: No module named uvicorn**:
+  This happens when `npm start` is run before creating the backend virtual environment in `backend/.venv`. Run `cd backend; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt; cd ..` to install the backend packages.
 - **Python command not found**:
   Ensure Python was installed with the "Add python.exe to PATH" checkbox checked.
 
