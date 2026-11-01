@@ -107,7 +107,9 @@ def list_benchmarks() -> dict[str, Any]:
 @router.post("/refresh", dependencies=[Depends(csrf_protected)])
 def refresh_catalog(db: Session = Depends(database)) -> dict[str, Any]:
     seed_catalog(db, force_refresh=True)
-    assets = list(db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all())
+    assets = list(db.scalars(
+        select(Asset).where(Asset.is_synthetic.is_(False)).order_by(Asset.asset_type, Asset.name)
+    ).all())
     return {
         "refreshed": True,
         "assets": _summaries(db, assets),
@@ -122,7 +124,9 @@ def list_assets(
     max_min_horizon_months: int | None = Query(default=None, ge=1, le=240),
     db: Session = Depends(database),
 ) -> dict[str, Any]:
-    assets = list(db.scalars(select(Asset).order_by(Asset.asset_type, Asset.name)).all())
+    assets = list(db.scalars(
+        select(Asset).where(Asset.is_synthetic.is_(False)).order_by(Asset.asset_type, Asset.name)
+    ).all())
     filtered: list[Asset] = []
     for asset in assets:
         if asset_type and asset.asset_type != asset_type:

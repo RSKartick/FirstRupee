@@ -79,7 +79,7 @@ def list_passports(db: Session, user_id: int, profile_id: int, limit: int = 50) 
 
 
 def get_asset(db: Session, asset_id: int) -> Asset | None:
-    return db.get(Asset, asset_id)
+    return db.scalar(select(Asset).where(Asset.id == asset_id, Asset.is_synthetic.is_(False)))
 
 
 def list_chat_messages(db: Session, user_id: int, limit: int = 100) -> list[ChatMessageRow]:
